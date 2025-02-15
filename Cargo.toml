@@ -5,6 +5,9 @@ edition = "2021"
 rust-version = "1.84.1"
 description = "Manage seed data for my home lab."
 license-file = "LICENSE"
+documentation = "https://github.com/arpanrec/crustpass"
+homepage = "https://github.com/arpanrec/crustpass"
+repository = "git@github.com:arpanrec/crustpass.git"
 
 [dependencies]
 libsql = { version = "0.6.0", features = ["encryption"] }
