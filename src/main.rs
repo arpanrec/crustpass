@@ -8,13 +8,11 @@ use physical::Physical;
 
 use axum::{
     extract,
-    extract::Path,
-    extract::{ConnectInfo, State},
+    extract::{Path,ConnectInfo, State},
     http::{Response, StatusCode},
     middleware::{self, Next},
     response::IntoResponse,
-    routing::get,
-    routing::post,
+    routing::{post,get},
     Router,
 };
 
