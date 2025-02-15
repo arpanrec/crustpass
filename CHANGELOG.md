@@ -1,6 +1,6 @@
-# [1.1.0](https://github.com/arpanrec/secretsquirrel/compare/1.0.3...1.1.0) (2025-02-15)
+## [1.1.1](https://github.com/arpanrec/secretsquirrel/compare/1.1.0...1.1.1) (2025-02-15)
 
 
-### Features
+### Bug Fixes
 
-* App Settings ([#3](https://github.com/arpanrec/secretsquirrel/issues/3)) ([f21a943](https://github.com/arpanrec/secretsquirrel/commit/f21a943a1f7530db6366e3a56e6e63d9c254ed3a))
+* Storage type ([#4](https://github.com/arpanrec/secretsquirrel/issues/4)) ([d48f0cc](https://github.com/arpanrec/secretsquirrel/commit/d48f0cc928cf3337ada1fab7c9984b69ab6a9ecc))
