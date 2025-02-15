@@ -1,7 +1,9 @@
 mod app_settings;
+mod auth;
 mod physical;
 
 use app_settings::Configuration;
+use auth::Authentication;
 use physical::Physical;
 
 use axum::{
@@ -22,7 +24,8 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[derive(Clone, Debug)]
 struct AppState {
-    storage: Physical,
+    physical: Physical,
+    authentication: Authentication,
     configuration: Configuration,
 }
 
@@ -30,8 +33,9 @@ struct AppState {
 fn main() {
     println!("Starting Secret Squirrel...");
     let configuration = app_settings::load_configuration();
-    let storage = Physical::new(configuration.physical.clone());
-    let app_state = AppState { storage, configuration };
+    let physical = Physical::new(configuration.physical.clone());
+    let authentication = Authentication::new(configuration.authentication.clone());
+    let app_state = AppState { physical, authentication, configuration };
     println!("Server configuration: {:?}", app_state);
     let rt = tokio::runtime::Builder::new_multi_thread().worker_threads(4).enable_all().build().unwrap();
     rt.block_on(async {
@@ -61,7 +65,7 @@ async fn axum_server(app_state: AppState) {
 
 async fn handle_get(Path(path): Path<String>, State(state): State<AppState>) -> Response<String> {
     info!("Received get request for key: {}", path);
-    let mut storage = state.storage;
+    let mut storage = state.physical;
     let value = storage.read(&path).await;
     debug!("Read value: {:?}", value);
     let builder = Response::builder();
@@ -85,7 +89,7 @@ async fn handle_get(Path(path): Path<String>, State(state): State<AppState>) -> 
 async fn handle_post(Path(path): Path<String>, State(state): State<AppState>, body: String) -> Response<String> {
     info!("Received post request for key: {}", path);
     debug!("Received body: {}", body);
-    let mut storage = state.storage;
+    let mut storage = state.physical;
     storage.write(&path, &body).await;
     Response::builder()
         .status(StatusCode::CREATED)
@@ -96,7 +100,7 @@ async fn handle_post(Path(path): Path<String>, State(state): State<AppState>, bo
 
 async fn handle_delete(Path(path): Path<String>, State(state): State<AppState>) -> Response<String> {
     info!("Received delete request for key: {}", path);
-    let mut storage = state.storage;
+    let mut storage = state.physical;
     storage.delete(&path).await;
     Response::new("".to_string())
 }
@@ -111,14 +115,11 @@ async fn auth_layer(
     request: extract::Request,
     next: Next,
 ) -> impl IntoResponse {
-    let admin_api_key =
-        app_state.configuration.authentication.authentication_details["admin_api_key"].as_str().unwrap();
+    let authentication = app_state.authentication.clone();
     let mut is_authorized = false;
     if let Some(header) = request.headers().get("Authorization") {
         if let Ok(value) = header.to_str() {
-            if value == admin_api_key {
-                is_authorized = true;
-            }
+            is_authorized = authentication.is_authenticate(value);
         }
     }
     if is_authorized {
