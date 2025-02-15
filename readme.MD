@@ -16,17 +16,23 @@ Priorities: `SQ_SETTINGS_FILE` > `SQ_SETTINGS_JSON`
 {
     "socket_addr": "Listen address for the server, Example: `127.0.0.1:3000`",
     "physical": {
-        "physical_type": "libsql", // Possible values: `libsql`
-        "physical_details": null // Details for the physical type
+        "physical_type": "Type of physical storage",
+        "physical_details": "Details for the physical storage"
     },
     "authentication": {
-        "authentication_type": "Type of authentication", // Possible values: `admin_api_key`
-        "authentication_details": null // Details for the authentication type
+        "authentication_type": "Type of authentication",
+        "authentication_details": "Details for the authentication"
     }
 }
 ```
 
 ## Configuration: Physical
+
+Persistence layer for the seed data.
+
+Possible values:
+
+- `libsql`
 
 ### Configuration: Physical: libsql
 
@@ -39,6 +45,12 @@ Priorities: `SQ_SETTINGS_FILE` > `SQ_SETTINGS_JSON`
 ```
 
 ## Configuration: Authentication
+
+Authentication layer for the API.
+
+Possible values:
+
+- `admin_api_key`
 
 ### Configuration: Authentication: admin_api_key
 
