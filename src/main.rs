@@ -1,18 +1,18 @@
-mod settings;
 mod auth;
 mod physical;
 mod routers;
+mod settings;
 
+use crate::routers::get_secret_router;
 use auth::Authentication;
 use physical::Physical;
 
 use axum::{
-    extract,
-    extract::{ConnectInfo, State},
+    extract::{ConnectInfo, Request, State},
     http::{Response, StatusCode},
     middleware::{self, Next},
     response::IntoResponse,
-    Router,
+    routing, serve, Router,
 };
 
 use std::net::SocketAddr;
@@ -50,13 +50,13 @@ async fn axum_server(configuration: settings::Configuration) {
         .init();
 
     let app = Router::new()
-        .nest("/secret", routers::get_secret_router())
-        .route("/{*key}", axum::routing::any(handle_any))
+        .nest("/secret", get_secret_router())
+        .route("/{*key}", routing::any(handle_any))
         .layer(middleware::from_fn_with_state(app_state.clone(), auth_layer))
         .with_state(app_state);
     info!("Starting server on: {}", addr);
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>()).await.unwrap();
+    serve(listener, app.into_make_service_with_connect_info::<SocketAddr>()).await.unwrap();
 }
 
 async fn handle_any() -> Response<String> {
@@ -66,7 +66,7 @@ async fn handle_any() -> Response<String> {
 async fn auth_layer(
     State(app_state): State<AppState>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    request: extract::Request,
+    request: Request,
     next: Next,
 ) -> impl IntoResponse {
     let authentication = app_state.authentication.clone();
