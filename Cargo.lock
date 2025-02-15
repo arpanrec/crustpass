@@ -1504,6 +1504,7 @@ dependencies = [
  "base64 0.22.1",
  "cbc",
  "libsql",
+ "serde",
  "serde_json",
  "tokio",
  "tracing",

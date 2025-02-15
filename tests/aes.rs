@@ -20,7 +20,6 @@ async fn aes_test() {
 async fn json() {
     use serde_json::Value;
     let data = fs::read_to_string("foo.json").expect("Should have been able to read the file");
-
     let v: Value = serde_json::from_str(data.as_str()).expect("Should have been able to parse the JSON");
     println!("Please call {} at the number {}", v["name"], v["phones"][0]);
 }
