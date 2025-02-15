@@ -29,7 +29,7 @@ jobs:
                   trust_level: 5
 
             - name: Setup Node
-              uses: actions/setup-node@v4.1.0
+              uses: actions/setup-node@v4.2.0
               with:
                   node-version: lts/*
                   cache-dependency-path: .github/files/package-lock.json
