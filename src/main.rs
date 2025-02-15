@@ -1,22 +1,22 @@
-mod app_settings;
+mod settings;
 mod auth;
 mod physical;
+mod routers;
 
 use auth::Authentication;
 use physical::Physical;
 
 use axum::{
     extract,
-    extract::{ConnectInfo, Path, State},
+    extract::{ConnectInfo, State},
     http::{Response, StatusCode},
     middleware::{self, Next},
     response::IntoResponse,
-    routing::{get, post},
     Router,
 };
 
 use std::net::SocketAddr;
-use tracing::{debug, info};
+use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[derive(Clone, Debug)]
@@ -28,7 +28,7 @@ struct AppState {
 // #[tokio::main]
 fn main() {
     println!("Starting Secret Squirrel...");
-    let configuration = app_settings::load_configuration();
+    let configuration = settings::load_configuration();
     println!("Server configuration: {:?}", configuration);
     let rt = tokio::runtime::Builder::new_multi_thread().worker_threads(4).enable_all().build().unwrap();
     rt.block_on(async {
@@ -36,7 +36,7 @@ fn main() {
     });
 }
 
-async fn axum_server(configuration: app_settings::Configuration) {
+async fn axum_server(configuration: settings::Configuration) {
     let physical = Physical::new(configuration.physical.clone());
     let authentication = Authentication::new(configuration.authentication.clone());
     let app_state = AppState { physical, authentication };
@@ -50,56 +50,13 @@ async fn axum_server(configuration: app_settings::Configuration) {
         .init();
 
     let app = Router::new()
-        .route("/secret/{*key}", get(handle_get).delete(handle_delete))
-        .route("/secret/{*key}", post(handle_post))
+        .nest("/secret", routers::get_secret_router())
         .route("/{*key}", axum::routing::any(handle_any))
         .layer(middleware::from_fn_with_state(app_state.clone(), auth_layer))
         .with_state(app_state);
     info!("Starting server on: {}", addr);
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>()).await.unwrap();
-}
-
-async fn handle_get(Path(path): Path<String>, State(state): State<AppState>) -> Response<String> {
-    info!("Received get request for key: {}", path);
-    let mut storage = state.physical;
-    let value = storage.read(&path).await;
-    debug!("Read value: {:?}", value);
-    let builder = Response::builder();
-    if let Some(value) = value {
-        debug!("Found value: {}", value);
-        builder
-            .status(StatusCode::OK)
-            .header("Content-Type", "text/plain")
-            .body(value)
-            .expect("Failed to send response")
-    } else {
-        debug!("Not Found");
-        builder
-            .status(StatusCode::NOT_FOUND)
-            .header("Content-Type", "text/plain")
-            .body("".to_string())
-            .expect("Failed to send response")
-    }
-}
-
-async fn handle_post(Path(path): Path<String>, State(state): State<AppState>, body: String) -> Response<String> {
-    info!("Received post request for key: {}", path);
-    debug!("Received body: {}", body);
-    let mut storage = state.physical;
-    storage.write(&path, &body).await;
-    Response::builder()
-        .status(StatusCode::CREATED)
-        .header("Content-Type", "text/plain")
-        .body("".to_string())
-        .expect("Failed to send response")
-}
-
-async fn handle_delete(Path(path): Path<String>, State(state): State<AppState>) -> Response<String> {
-    info!("Received delete request for key: {}", path);
-    let mut storage = state.physical;
-    storage.delete(&path).await;
-    Response::new("".to_string())
 }
 
 async fn handle_any() -> Response<String> {

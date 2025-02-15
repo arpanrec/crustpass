@@ -7,10 +7,10 @@ pub struct Authentication {
 }
 
 impl Authentication {
-    pub fn new(authentication: crate::app_settings::Authentication) -> Authentication {
+    pub fn new(authentication: crate::settings::Authentication) -> Authentication {
         match authentication.authentication_type.as_str() {
-            "api_key" => Authentication {
-                authentication_type: "api_key".to_string(),
+            "admin_api_key" => Authentication {
+                authentication_type: "admin_api_key".to_string(),
                 authentication_details: authentication.authentication_details,
             },
             _ => panic!("Unsupported storage type"),
@@ -18,12 +18,12 @@ impl Authentication {
     }
 
     pub fn is_authenticate(&self, auth_token: &str) -> bool {
-        if self.authentication_type == "api_key" {
-            let admin_api_key = self.authentication_details["admin_api_key"].as_str().unwrap();
+        if self.authentication_type == "admin_api_key" {
+            let admin_api_key = self.authentication_details["api_key"].as_str().unwrap();
             if auth_token == admin_api_key {
                 return true;
             }
         }
-        return false;
+        false
     }
 }

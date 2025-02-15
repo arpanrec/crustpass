@@ -8,7 +8,7 @@ pub enum Physical {
 }
 
 impl Physical {
-    pub fn new(physical: crate::app_settings::Physical) -> Self {
+    pub fn new(physical: crate::settings::Physical) -> Self {
         match physical.physical_type.as_str() {
             "libsql" => Physical::LibSQL(LibSQLPhysical::new(physical)),
             _ => panic!("Unsupported storage type"),
