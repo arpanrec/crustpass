@@ -1,3 +1,5 @@
+use std::fs;
+
 use secretsquirrel::enc::aes256::{aes256_dec, aes256_enc};
 
 #[tokio::test]
@@ -12,4 +14,13 @@ async fn aes_test() {
     let dec = aes256_dec(&key_str_base64, &iv_str_base64, &enc).await;
     println!("{:?}", dec);
     assert_eq!(dec, plaintext);
+}
+
+#[tokio::test]
+async fn json() {
+    use serde_json::Value;
+    let data = fs::read_to_string("foo.json").expect("Should have been able to read the file");
+
+    let v: Value = serde_json::from_str(data.as_str()).expect("Should have been able to parse the JSON");
+    println!("Please call {} at the number {}", v["name"], v["phones"][0]);
 }
