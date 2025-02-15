@@ -3,9 +3,15 @@ use serde_json::Value;
 use std::fs;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct StorageConfig {
+    pub storage_type: String,
+    pub storage_details: Value,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct AppSettings {
-    pub listen_addr: String,
-    pub storage_config: Value,
+    pub socket_addr: String,
+    pub storage_config: StorageConfig,
     pub auth_config: Value,
 }
 

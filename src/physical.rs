@@ -1,7 +1,8 @@
 use libsql::Builder;
 use libsql::Connection;
+use secretsquirrel::app_settings::StorageConfig;
+use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
-
 // CREATE TABLE secrets_d (
 //     id_d INTEGER PRIMARY KEY AUTOINCREMENT,
 //     key_d TEXT NOT NULL,
@@ -12,20 +13,23 @@ use std::time::{SystemTime, UNIX_EPOCH};
 // );
 // CREATE UNIQUE INDEX secrets_d_key_d_IDX ON secrets_d (key_d,version_d);
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Storage {
-    pub table_name: String,
+    table_name: String,
+    db_url: String,
+    auth_token: String,
 }
 
 impl Storage {
-    pub fn new() -> Self {
-        Storage { table_name: "secrets_d".to_string() }
+    pub fn new(storage_config: StorageConfig) -> Self {
+        if storage_config.storage_type != "libsql" {
+            panic!("Only sqlite is supported at this time");
+        }
+        serde_json::from_value(storage_config.storage_details).unwrap()
     }
 
     async fn get_connection(&mut self) -> Connection {
-        let url = std::env::var("TURSO_DATABASE_URL").expect("TURSO_DATABASE_URL must be set");
-        let token = std::env::var("TURSO_AUTH_TOKEN").expect("TURSO_AUTH_TOKEN must be set");
-        Builder::new_remote(url, token).build().await.unwrap().connect().unwrap()
+        Builder::new_remote(self.db_url.clone(), self.auth_token.clone()).build().await.unwrap().connect().unwrap()
     }
     pub async fn get_current_version(&mut self, key: &str) -> i64 {
         let table_name = self.table_name.clone();

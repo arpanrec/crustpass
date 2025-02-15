@@ -12,24 +12,24 @@ use axum::{
     routing::get,
     Router,
 };
+use secretsquirrel::app_settings;
+use secretsquirrel::app_settings::AppSettings;
 use std::net::SocketAddr;
 use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[derive(Clone, Debug)]
-struct MainState {
+struct AppState {
     storage: Storage,
-    auth_conf: String,
-    listen: String,
+    app_settings: AppSettings,
 }
 
 // #[tokio::main]
 fn main() {
     println!("Starting Secret Squirrel...");
-    let storage: Storage = Storage::new();
-    let auth_conf = std::env::var("SQ_AUTH_CONF").unwrap_or("admin".to_string());
-    let listen = std::env::var("SQ_LISTEN").unwrap_or("0.0.0.0:3000".to_string());
-    let shared_state = MainState { storage, auth_conf, listen };
+    let app_settings = app_settings::get_settings();
+    let storage: Storage = Storage::new(app_settings.storage_config.clone());
+    let shared_state = AppState { storage, app_settings };
     println!("Server configuration: {:?}", shared_state);
     let rt = tokio::runtime::Builder::new_multi_thread().worker_threads(4).enable_all().build().unwrap();
     rt.block_on(async {
@@ -37,7 +37,7 @@ fn main() {
     });
 }
 
-async fn axum_server(shared_state: MainState) {
+async fn axum_server(shared_state: AppState) {
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -45,20 +45,19 @@ async fn axum_server(shared_state: MainState) {
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
-    info!("Starting server...");
-    let addr: SocketAddr = shared_state.listen.parse().unwrap();
+    let addr: SocketAddr = shared_state.app_settings.socket_addr.parse().unwrap();
     let app = Router::new()
         .route("/secret/{*key}", get(handle_get).delete(handle_delete))
         .route("/secret/{*key}", post(handle_post))
         .route("/{*key}", axum::routing::any(handle_any))
         .layer(middleware::from_fn_with_state(shared_state.clone(), auth_layer))
         .with_state(shared_state);
-
+    info!("Starting server on: {}", addr);
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>()).await.unwrap();
 }
 
-async fn handle_get(Path(path): Path<String>, State(state): State<MainState>) -> Response<String> {
+async fn handle_get(Path(path): Path<String>, State(state): State<AppState>) -> Response<String> {
     info!("Received get request for key: {}", path);
     let mut storage = state.storage;
     let value = storage.read(&path).await;
@@ -81,7 +80,7 @@ async fn handle_get(Path(path): Path<String>, State(state): State<MainState>) ->
     }
 }
 
-async fn handle_post(Path(path): Path<String>, State(state): State<MainState>, body: String) -> Response<String> {
+async fn handle_post(Path(path): Path<String>, State(state): State<AppState>, body: String) -> Response<String> {
     info!("Received post request for key: {}", path);
     debug!("Received body: {}", body);
     let mut storage = state.storage;
@@ -93,7 +92,7 @@ async fn handle_post(Path(path): Path<String>, State(state): State<MainState>, b
         .expect("Failed to send response")
 }
 
-async fn handle_delete(Path(path): Path<String>, State(state): State<MainState>) -> Response<String> {
+async fn handle_delete(Path(path): Path<String>, State(state): State<AppState>) -> Response<String> {
     info!("Received delete request for key: {}", path);
     let mut storage = state.storage;
     storage.delete(&path).await;
@@ -105,16 +104,16 @@ async fn handle_any() -> Response<String> {
 }
 
 async fn auth_layer(
-    State(state): State<MainState>,
+    State(state): State<AppState>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     request: extract::Request,
     next: Next,
 ) -> impl IntoResponse {
-    let auth_conf: String = state.auth_conf;
+    let admin_api_key: String = state.app_settings.auth_config.as_str().unwrap().to_string();
     let mut is_authorized = false;
     if let Some(header) = request.headers().get("Authorization") {
         if let Ok(value) = header.to_str() {
-            if value == auth_conf {
+            if value == admin_api_key {
                 is_authorized = true;
             }
         }
