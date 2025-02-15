@@ -5,8 +5,8 @@ edition = "2021"
 rust-version = "1.84.1"
 description = "Manage seed data for my home lab."
 license-file = "LICENSE"
-documentation = "https://github.com/arpanrec/crustpass"
-homepage = "https://github.com/arpanrec/crustpass"
+documentation = "https://github.com/arpanrec/crustpass/blob/main/README.md"
+homepage = "https://github.com/arpanrec/crustpass/blob/main/README.md"
 repository = "https://github.com/arpanrec/crustpass.git"
 
 [dependencies]
