@@ -53,7 +53,7 @@ module.exports = {
             {
                 assets: [
                     {
-                        path: '/tmp/secretsquirrel/*',
+                        path: '/tmp/crustpass/*',
                     },
                 ],
             },

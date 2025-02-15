@@ -27,7 +27,7 @@ struct AppState {
 
 // #[tokio::main]
 fn main() {
-    println!("Starting Secret Squirrel...");
+    println!("Starting Application...");
     let configuration = settings::load_configuration();
     println!("Server configuration: {:?}", configuration);
     let rt = tokio::runtime::Builder::new_multi_thread().worker_threads(4).enable_all().build().unwrap();

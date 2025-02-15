@@ -10,6 +10,6 @@ RUN cargo build --release
 
 FROM docker.io/library/debian:bullseye-slim
 
-COPY --from=builder /usr/src/app/target/release/secretsquirrel /usr/local/bin/secretsquirrel
+COPY --from=builder /usr/src/app/target/release/crustpass /usr/local/bin/crustpass
 
-CMD ["/usr/local/bin/secretsquirrel"]
+CMD ["/usr/local/bin/crustpass"]
