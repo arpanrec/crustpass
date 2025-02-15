@@ -1,19 +1,19 @@
+mod app_settings;
 mod physical;
 
+use crate::app_settings::Configuration;
 use crate::physical::Physical;
-use axum::extract::{ConnectInfo, State};
-use axum::routing::post;
 use axum::{
     extract,
     extract::Path,
+    extract::{ConnectInfo, State},
     http::{Response, StatusCode},
     middleware::{self, Next},
     response::IntoResponse,
     routing::get,
+    routing::post,
     Router,
 };
-use secretsquirrel::app_settings;
-use secretsquirrel::app_settings::Configuration;
 use std::net::SocketAddr;
 use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -109,7 +109,8 @@ async fn auth_layer(
     request: extract::Request,
     next: Next,
 ) -> impl IntoResponse {
-    let admin_api_key = app_state.configuration.authentication.authentication_details["admin_api_key"].as_str().unwrap();
+    let admin_api_key =
+        app_state.configuration.authentication.authentication_details["admin_api_key"].as_str().unwrap();
     let mut is_authorized = false;
     if let Some(header) = request.headers().get("Authorization") {
         if let Ok(value) = header.to_str() {
