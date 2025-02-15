@@ -1,7 +1,6 @@
 use libsql::Builder;
 use libsql::Connection;
-use secretsquirrel::app_settings::StorageConfig;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::time::{SystemTime, UNIX_EPOCH};
 // CREATE TABLE secrets_d (
 //     id_d INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -13,26 +12,38 @@ use std::time::{SystemTime, UNIX_EPOCH};
 // );
 // CREATE UNIQUE INDEX secrets_d_key_d_IDX ON secrets_d (key_d,version_d);
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Storage {
+#[derive(Clone, Debug, Deserialize)]
+pub struct PhysicalDetails {
     table_name: String,
     db_url: String,
     auth_token: String,
 }
 
-impl Storage {
-    pub fn new(storage_config: StorageConfig) -> Self {
-        if storage_config.storage_type != "libsql" {
+#[derive(Clone, Debug)]
+pub struct Physical {
+    physical_details: PhysicalDetails,
+}
+
+impl Physical {
+    pub fn new(physical: secretsquirrel::app_settings::Physical) -> Self {
+        if physical.physical_type != "libsql" {
             panic!("Only sqlite is supported at this time");
         }
-        serde_json::from_value(storage_config.storage_details).unwrap()
+        let physical_details =
+            serde_json::from_value(physical.physical_details).expect("Unable to parse storage_config");
+        Physical { physical_details }
     }
 
     async fn get_connection(&mut self) -> Connection {
-        Builder::new_remote(self.db_url.clone(), self.auth_token.clone()).build().await.unwrap().connect().unwrap()
+        Builder::new_remote(self.physical_details.db_url.clone(), self.physical_details.auth_token.clone())
+            .build()
+            .await
+            .unwrap()
+            .connect()
+            .unwrap()
     }
     pub async fn get_current_version(&mut self, key: &str) -> i64 {
-        let table_name = self.table_name.clone();
+        let table_name = self.physical_details.table_name.clone();
         let mut rows = self
             .get_connection()
             .await
@@ -49,7 +60,7 @@ impl Storage {
         }
     }
     pub async fn read(&mut self, key: &str) -> Option<String> {
-        let table_name = self.table_name.to_string();
+        let table_name = self.physical_details.table_name.to_string();
         let mut rows = self.get_connection().await
             .query(
                 &format!(
@@ -67,7 +78,7 @@ impl Storage {
     }
 
     pub async fn write(&mut self, key: &str, value: &str) {
-        let table_name = self.table_name.to_string();
+        let table_name = self.physical_details.table_name.to_string();
         let next_version = self.get_current_version(key).await + 1;
         let current_epoch_time: i64 = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
         self.get_connection()
@@ -81,7 +92,7 @@ impl Storage {
     }
 
     pub async fn delete(&mut self, key: &str) {
-        let table_name = self.table_name.to_string();
+        let table_name = self.physical_details.table_name.to_string();
         let current_epoch_time: i64 = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
         self.get_connection()
             .await
