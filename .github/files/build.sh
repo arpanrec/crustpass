@@ -10,11 +10,15 @@ rustup target add x86_64-unknown-linux-gnu
 
 mkdir -p /tmp/secretsquirrel && rm -rf /tmp/secretsquirrel/aarch64*
 
+echo "Building secretsquirrel for aarch64"
 env CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc \
     CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc \
     CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++ \
-    cargo build --target aarch64-unknown-linux-gnu --release &&
-    mv ./target/aarch64-unknown-linux-gnu/release/secretsquirrel /tmp/secretsquirrel/secretsquirrel-linux-aarch64
+    cargo build --target aarch64-unknown-linux-gnu --release
+mv ./target/aarch64-unknown-linux-gnu/release/secretsquirrel /tmp/secretsquirrel/secretsquirrel-linux-aarch64
+sha256sum /tmp/secretsquirrel/secretsquirrel-linux-aarch64 | tee -a /tmp/secretsquirrel/secretsquirrel.sha256
 
+echo "Building secretsquirrel for x86_64"
 cargo build --target x86_64-unknown-linux-gnu --release &&
     mv ./target/x86_64-unknown-linux-gnu/release/secretsquirrel /tmp/secretsquirrel/secretsquirrel-linux-x86_64
+sha256sum /tmp/secretsquirrel/secretsquirrel-linux-x86_64 | tee -a /tmp/secretsquirrel/secretsquirrel.sha256
