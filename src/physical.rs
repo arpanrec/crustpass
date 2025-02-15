@@ -12,7 +12,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 // );
 // CREATE UNIQUE INDEX secrets_d_key_d_IDX ON secrets_d (key_d,version_d);
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Storage {
     pub table_name: String,
 }

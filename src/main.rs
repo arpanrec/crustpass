@@ -1,21 +1,22 @@
 mod physical;
+
 use crate::physical::Storage;
-use axum::extract::State;
+use axum::extract::{ConnectInfo, State};
 use axum::routing::post;
 use axum::{
-    body::Body,
     extract,
     extract::Path,
-    http,
     http::{Response, StatusCode},
     middleware::{self, Next},
     response::IntoResponse,
     routing::get,
     Router,
 };
+use std::net::SocketAddr;
+use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct MainState {
     storage: Storage,
     auth_conf: String,
@@ -29,6 +30,7 @@ fn main() {
     let auth_conf = std::env::var("SQ_AUTH_CONF").unwrap_or("admin".to_string());
     let listen = std::env::var("SQ_LISTEN").unwrap_or("0.0.0.0:3000".to_string());
     let shared_state = MainState { storage, auth_conf, listen };
+    println!("Server configuration: {:?}", shared_state);
     let rt = tokio::runtime::Builder::new_multi_thread().worker_threads(4).enable_all().build().unwrap();
     rt.block_on(async {
         axum_server(shared_state).await;
@@ -36,8 +38,6 @@ fn main() {
 }
 
 async fn axum_server(shared_state: MainState) {
-    println!("Starting server...");
-
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -45,7 +45,8 @@ async fn axum_server(shared_state: MainState) {
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
-    let addr: std::net::SocketAddr = shared_state.listen.parse().unwrap();
+    info!("Starting server...");
+    let addr: SocketAddr = shared_state.listen.parse().unwrap();
     let app = Router::new()
         .route("/secret/{*key}", get(handle_get).delete(handle_delete))
         .route("/secret/{*key}", post(handle_post))
@@ -54,24 +55,24 @@ async fn axum_server(shared_state: MainState) {
         .with_state(shared_state);
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>()).await.unwrap();
 }
 
 async fn handle_get(Path(path): Path<String>, State(state): State<MainState>) -> Response<String> {
-    println!("Received request for key: {}", path);
+    info!("Received get request for key: {}", path);
     let mut storage = state.storage;
     let value = storage.read(&path).await;
-    println!("Read value: {:?}", value);
+    debug!("Read value: {:?}", value);
     let builder = Response::builder();
     if let Some(value) = value {
-        println!("Found value: {}", value);
+        debug!("Found value: {}", value);
         builder
             .status(StatusCode::OK)
             .header("Content-Type", "text/plain")
             .body(value)
             .expect("Failed to send response")
     } else {
-        println!("Not Found");
+        debug!("Not Found");
         builder
             .status(StatusCode::NOT_FOUND)
             .header("Content-Type", "text/plain")
@@ -81,8 +82,8 @@ async fn handle_get(Path(path): Path<String>, State(state): State<MainState>) ->
 }
 
 async fn handle_post(Path(path): Path<String>, State(state): State<MainState>, body: String) -> Response<String> {
-    println!("Received request for key: {}", path);
-    println!("Received body: {}", body);
+    info!("Received post request for key: {}", path);
+    debug!("Received body: {}", body);
     let mut storage = state.storage;
     storage.write(&path, &body).await;
     Response::builder()
@@ -93,19 +94,22 @@ async fn handle_post(Path(path): Path<String>, State(state): State<MainState>, b
 }
 
 async fn handle_delete(Path(path): Path<String>, State(state): State<MainState>) -> Response<String> {
-    println!("Received request for key: {}", path);
+    info!("Received delete request for key: {}", path);
     let mut storage = state.storage;
     storage.delete(&path).await;
     Response::new("".to_string())
 }
 
-async fn handle_any(Path(path): Path<String>, request: http::Request<Body>) -> Response<String> {
-    println!("Received request for lock with method: {:?}", request.method());
-    println!("Received request for key: {}", path);
+async fn handle_any() -> Response<String> {
     Response::new("".to_string())
 }
 
-async fn auth_layer(State(state): State<MainState>, request: extract::Request, next: Next) -> impl IntoResponse {
+async fn auth_layer(
+    State(state): State<MainState>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    request: extract::Request,
+    next: Next,
+) -> impl IntoResponse {
     let auth_conf: String = state.auth_conf;
     let mut is_authorized = false;
     if let Some(header) = request.headers().get("Authorization") {
@@ -118,7 +122,7 @@ async fn auth_layer(State(state): State<MainState>, request: extract::Request, n
     if is_authorized {
         next.run(request).await.into_response()
     } else {
-        println!("Unauthorized request");
+        info!("Unauthorized request from: {:?}", addr.to_string());
         Response::builder()
             .status(StatusCode::UNAUTHORIZED)
             .header("Content-Type", "text/plain")
