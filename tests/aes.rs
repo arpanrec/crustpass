@@ -1,4 +1,4 @@
-use secretsquirrel::enc::aes256::{aes256_dec, aes256_enc};
+use crustpass::enc::aes256::{aes256_dec, aes256_enc};
 
 #[tokio::test]
 async fn aes_test() {
