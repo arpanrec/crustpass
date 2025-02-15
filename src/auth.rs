@@ -1,7 +1,6 @@
 use serde_json::Value;
 
-#[derive(Clone)]
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Authentication {
     authentication_type: String,
     authentication_details: Value,

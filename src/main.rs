@@ -2,17 +2,16 @@ mod app_settings;
 mod auth;
 mod physical;
 
-use app_settings::Configuration;
 use auth::Authentication;
 use physical::Physical;
 
 use axum::{
     extract,
-    extract::{Path,ConnectInfo, State},
+    extract::{ConnectInfo, Path, State},
     http::{Response, StatusCode},
     middleware::{self, Next},
     response::IntoResponse,
-    routing::{post,get},
+    routing::{get, post},
     Router,
 };
 
@@ -24,24 +23,24 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 struct AppState {
     physical: Physical,
     authentication: Authentication,
-    configuration: Configuration,
 }
 
 // #[tokio::main]
 fn main() {
     println!("Starting Secret Squirrel...");
     let configuration = app_settings::load_configuration();
-    let physical = Physical::new(configuration.physical.clone());
-    let authentication = Authentication::new(configuration.authentication.clone());
-    let app_state = AppState { physical, authentication, configuration };
-    println!("Server configuration: {:?}", app_state);
+    println!("Server configuration: {:?}", configuration);
     let rt = tokio::runtime::Builder::new_multi_thread().worker_threads(4).enable_all().build().unwrap();
     rt.block_on(async {
-        axum_server(app_state).await;
+        axum_server(configuration).await;
     });
 }
 
-async fn axum_server(app_state: AppState) {
+async fn axum_server(configuration: app_settings::Configuration) {
+    let physical = Physical::new(configuration.physical.clone());
+    let authentication = Authentication::new(configuration.authentication.clone());
+    let app_state = AppState { physical, authentication };
+    let addr: SocketAddr = configuration.socket_addr.parse().unwrap();
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -49,7 +48,7 @@ async fn axum_server(app_state: AppState) {
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
-    let addr: SocketAddr = app_state.configuration.socket_addr.parse().unwrap();
+
     let app = Router::new()
         .route("/secret/{*key}", get(handle_get).delete(handle_delete))
         .route("/secret/{*key}", post(handle_post))
