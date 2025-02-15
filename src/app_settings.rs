@@ -4,9 +4,9 @@ use std::fs;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct AppSettings {
-    listen_addr: String,
-    storage_config: Value,
-    auth_config: Value,
+    pub listen_addr: String,
+    pub storage_config: Value,
+    pub auth_config: Value,
 }
 
 pub fn get_settings() -> AppSettings {
