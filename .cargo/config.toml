@@ -1,7 +1,5 @@
-# [source.crates-io]
-# replace-with = "vendored-sources"
+[source.crates-io]
+replace-with = "vendored-sources"
 
-# [source.vendored-sources]
-# directory = "vendor"
-
-# No vendored sources for open source projects
+[source.vendored-sources]
+directory = "vendor"
