@@ -1,8 +1,9 @@
 mod app_settings;
 mod physical;
 
-use crate::app_settings::Configuration;
-use crate::physical::Physical;
+use app_settings::Configuration;
+use physical::Physical;
+
 use axum::{
     extract,
     extract::Path,
@@ -14,6 +15,7 @@ use axum::{
     routing::post,
     Router,
 };
+
 use std::net::SocketAddr;
 use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
