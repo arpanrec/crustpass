@@ -6,7 +6,7 @@ WORKDIR /usr/src/app
 
 COPY . .
 
-RUN cargo build --release --offline
+RUN cargo build --release
 
 FROM docker.io/library/debian:bullseye-slim
 
