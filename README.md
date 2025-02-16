@@ -20,7 +20,9 @@ Priorities: `CRUSTPASS_CONFIGURATION_FILE` > `CRUSTPASS_CONFIGURATION_JSON`
 }
 ```
 
-## Configuration: Server
+`RUST_LOG=crustpass=debug` - Enable debug logging.
+
+### Configuration: Server
 
 Server Settings.
 
@@ -30,7 +32,7 @@ Server Settings.
 }
 ```
 
-## Configuration: Physical
+### Configuration: Physical
 
 Persistence layer for the seed data.
 
@@ -51,7 +53,7 @@ Persistence layer for the seed data.
     }
     ```
 
-## Configuration: Authentication
+### Configuration: Authentication
 
 Authentication layer for the API.
 
