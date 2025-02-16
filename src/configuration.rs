@@ -1,6 +1,7 @@
 use serde::Deserialize;
 use serde_json::Value;
 use std::fs;
+use tracing::info;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Server {
@@ -27,26 +28,29 @@ pub struct Configuration {
 }
 
 pub fn load_configuration() -> Configuration {
-    let mut app_settings_file = std::env::var("SQ_CONFIGURATION_JSON_FILE").unwrap_or("".to_string());
-    let mut app_settings_json = std::env::var("SQ_CONFIGURATION_JSON").unwrap_or("".to_string());
-    if app_settings_file == "" && app_settings_json == "" {
-        app_settings_file = "app_settings.json".to_string();
-        println!("SQ_CONFIGURATION_JSON_FILE and SQ_CONFIGURATION_JSON not set, using default file: {}", app_settings_file);
-        app_settings_json = fs::read_to_string(app_settings_file).expect("Unable to read the file");
-    } else if app_settings_file != "" && app_settings_json != "" {
-        println!(
-            "SQ_CONFIGURATION_JSON_FILE and SQ_CONFIGURATION_JSON both set, using SQ_CONFIGURATION_JSON_FILE file: {}",
-            app_settings_file
+    let mut configuration_file = std::env::var("CRUSTPASS_CONFIGURATION_FILE").unwrap_or("".to_string());
+    let mut configuration_json = std::env::var("CRUSTPASS_CONFIGURATION_JSON").unwrap_or("".to_string());
+    if configuration_file == "" && configuration_json == "" {
+        configuration_file = "crustpass.json".to_string();
+        info!(
+            "CRUSTPASS_CONFIGURATION_FILE and CRUSTPASS_CONFIGURATION_JSON not set, using default file: {}",
+            configuration_file
         );
-        app_settings_json = fs::read_to_string(app_settings_file).expect("Unable to read the file");
-    } else if app_settings_file != "" && app_settings_json == "" {
-        println!("SQ_CONFIGURATION_JSON_FILE set, using file: {}", app_settings_file);
-        app_settings_json = fs::read_to_string(app_settings_file).expect("Unable to read the file");
-    } else if app_settings_json != "" && app_settings_file == "" {
-        println!("SQ_CONFIGURATION_JSON set, using JSON");
+        configuration_json = fs::read_to_string(configuration_file).expect("Unable to read the file");
+    } else if configuration_file != "" && configuration_json != "" {
+        info!(
+            "CRUSTPASS_CONFIGURATION_FILE and CRUSTPASS_CONFIGURATION_JSON both set, using CRUSTPASS_CONFIGURATION_FILE file: {}",
+            configuration_file
+        );
+        configuration_json = fs::read_to_string(configuration_file).expect("Unable to read the file");
+    } else if configuration_file != "" && configuration_json == "" {
+        info!("CRUSTPASS_CONFIGURATION_FILE set, using file: {}", configuration_file);
+        configuration_json = fs::read_to_string(configuration_file).expect("Unable to read the file");
+    } else if configuration_json != "" && configuration_file == "" {
+        info!("CRUSTPASS_CONFIGURATION_JSON set, using JSON");
     } else {
         panic!("Something went wrong with the settings");
     }
 
-    serde_json::from_str(app_settings_json.as_str()).expect("Unable to parse App Settings")
+    serde_json::from_str(configuration_json.as_str()).expect("Unable to parse App Settings")
 }

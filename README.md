@@ -6,11 +6,11 @@ Manage seed data for my home lab.
 
 ## Configuration
 
-`SQ_CONFIGURATION_JSON_FILE` - Path to the settings file. Default: `app_settings.json`
+`CRUSTPASS_CONFIGURATION_FILE` - Path to the settings file. Default: `app_settings.json`
 
-`SQ_CONFIGURATION_JSON` - JSON string of settings. Default: `null`
+`CRUSTPASS_CONFIGURATION_JSON` - JSON string of settings. Default: `null`
 
-Priorities: `SQ_CONFIGURATION_JSON_FILE` > `SQ_CONFIGURATION_JSON`
+Priorities: `CRUSTPASS_CONFIGURATION_FILE` > `CRUSTPASS_CONFIGURATION_JSON`
 
 ```json
 {
