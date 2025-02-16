@@ -5,7 +5,10 @@ use axum::{
 };
 use tracing::{debug, info};
 
-pub async fn handle_get(Path(path): Path<String>, State(state): State<AppState>) -> Response<String> {
+pub async fn handle_get(
+    Path(path): Path<String>,
+    State(state): State<AppState>,
+) -> Response<String> {
     info!("Received get request for key: {}", path);
     let mut storage = state.physical;
     let value = storage.read(&path).await;
@@ -28,7 +31,11 @@ pub async fn handle_get(Path(path): Path<String>, State(state): State<AppState>)
     }
 }
 
-pub async fn handle_post(Path(path): Path<String>, State(state): State<AppState>, body: String) -> Response<String> {
+pub async fn handle_post(
+    Path(path): Path<String>,
+    State(state): State<AppState>,
+    body: String,
+) -> Response<String> {
     info!("Received post request for key: {}", path);
     debug!("Received body: {}", body);
     let mut storage = state.physical;
@@ -40,7 +47,10 @@ pub async fn handle_post(Path(path): Path<String>, State(state): State<AppState>
         .expect("Failed to send response")
 }
 
-pub async fn handle_delete(Path(path): Path<String>, State(state): State<AppState>) -> Response<String> {
+pub async fn handle_delete(
+    Path(path): Path<String>,
+    State(state): State<AppState>,
+) -> Response<String> {
     info!("Received delete request for key: {}", path);
     let mut storage = state.physical;
     storage.delete(&path).await;

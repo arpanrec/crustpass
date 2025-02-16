@@ -28,24 +28,29 @@ pub struct Configuration {
 }
 
 pub fn load_configuration() -> Configuration {
-    let mut configuration_file = std::env::var("CRUSTPASS_CONFIGURATION_FILE").unwrap_or("".to_string());
-    let mut configuration_json = std::env::var("CRUSTPASS_CONFIGURATION_JSON").unwrap_or("".to_string());
+    let mut configuration_file =
+        std::env::var("CRUSTPASS_CONFIGURATION_FILE").unwrap_or("".to_string());
+    let mut configuration_json =
+        std::env::var("CRUSTPASS_CONFIGURATION_JSON").unwrap_or("".to_string());
     if configuration_file == "" && configuration_json == "" {
         configuration_file = "crustpass.json".to_string();
         info!(
             "CRUSTPASS_CONFIGURATION_FILE and CRUSTPASS_CONFIGURATION_JSON not set, using default file: {}",
             configuration_file
         );
-        configuration_json = fs::read_to_string(configuration_file).expect("Unable to read the file");
+        configuration_json =
+            fs::read_to_string(configuration_file).expect("Unable to read the file");
     } else if configuration_file != "" && configuration_json != "" {
         info!(
             "CRUSTPASS_CONFIGURATION_FILE and CRUSTPASS_CONFIGURATION_JSON both set, using CRUSTPASS_CONFIGURATION_FILE file: {}",
             configuration_file
         );
-        configuration_json = fs::read_to_string(configuration_file).expect("Unable to read the file");
+        configuration_json =
+            fs::read_to_string(configuration_file).expect("Unable to read the file");
     } else if configuration_file != "" && configuration_json == "" {
         info!("CRUSTPASS_CONFIGURATION_FILE set, using file: {}", configuration_file);
-        configuration_json = fs::read_to_string(configuration_file).expect("Unable to read the file");
+        configuration_json =
+            fs::read_to_string(configuration_file).expect("Unable to read the file");
     } else if configuration_json != "" && configuration_file == "" {
         info!("CRUSTPASS_CONFIGURATION_JSON set, using JSON");
     } else {

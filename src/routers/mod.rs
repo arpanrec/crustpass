@@ -7,7 +7,10 @@ use std::net::SocketAddr;
 use tracing::info;
 
 fn get_secret_router() -> Router<AppState> {
-    Router::new().route("/{*key}", get(secret::handle_get).post(secret::handle_post).delete(secret::handle_delete))
+    Router::new().route(
+        "/{*key}",
+        get(secret::handle_get).post(secret::handle_post).delete(secret::handle_delete),
+    )
 }
 
 async fn handle_any() -> Response<String> {

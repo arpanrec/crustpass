@@ -28,18 +28,21 @@ impl LibSQLPhysical {
         if physical.physical_type != "libsql" {
             panic!("Only sqlite is supported at this time");
         }
-        let libsql_details: LibSQLDetails =
-            serde_json::from_value(physical.physical_details).expect("Unable to parse storage_config");
+        let libsql_details: LibSQLDetails = serde_json::from_value(physical.physical_details)
+            .expect("Unable to parse storage_config");
         LibSQLPhysical { libsql_details }
     }
 
     async fn get_connection(&mut self) -> Connection {
-        Builder::new_remote(self.libsql_details.db_url.clone(), self.libsql_details.auth_token.clone())
-            .build()
-            .await
-            .unwrap()
-            .connect()
-            .unwrap()
+        Builder::new_remote(
+            self.libsql_details.db_url.clone(),
+            self.libsql_details.auth_token.clone(),
+        )
+        .build()
+        .await
+        .unwrap()
+        .connect()
+        .unwrap()
     }
     async fn get_current_version(&mut self, key: &str) -> i64 {
         let table_name = self.libsql_details.table_name.clone();
@@ -79,7 +82,8 @@ impl LibSQLPhysical {
     pub async fn write(&mut self, key: &str, value: &str) {
         let table_name = self.libsql_details.table_name.to_string();
         let next_version = self.get_current_version(key).await + 1;
-        let current_epoch_time: i64 = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
+        let current_epoch_time: i64 =
+            SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
         self.get_connection()
             .await
             .execute(
@@ -92,11 +96,14 @@ impl LibSQLPhysical {
 
     pub async fn delete(&mut self, key: &str) {
         let table_name = self.libsql_details.table_name.to_string();
-        let current_epoch_time: i64 = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
+        let current_epoch_time: i64 =
+            SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
         self.get_connection()
             .await
             .execute(
-                &format!("UPDATE {table_name} SET is_deleted_d = 1, updated_at_d = ? WHERE key_d = ?;"),
+                &format!(
+                    "UPDATE {table_name} SET is_deleted_d = 1, updated_at_d = ? WHERE key_d = ?;"
+                ),
                 libsql::params![current_epoch_time, key],
             )
             .await
