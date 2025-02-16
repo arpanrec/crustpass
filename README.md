@@ -6,29 +6,40 @@ Manage seed data for my home lab.
 
 ## Configuration
 
-`SQ_SETTINGS_JSON_FILE` - Path to the settings file. Default: `app_settings.json`
+`CRUSTPASS_CONFIGURATION_FILE` - Path to the settings file. Default: `app_settings.json`
 
-`SQ_SETTINGS_JSON` - JSON string of settings. Default: `null`
+`CRUSTPASS_CONFIGURATION_JSON` - JSON string of settings. Default: `null`
 
-Priorities: `SQ_SETTINGS_JSON_FILE` > `SQ_SETTINGS_JSON`
+Priorities: `CRUSTPASS_CONFIGURATION_FILE` > `CRUSTPASS_CONFIGURATION_JSON`
 
 ```json
 {
-    "socket_addr": "Listen address for the server, Example: `127.0.0.1:3000`",
-    "physical": {
-        "physical_type": "See Physical",
-        "physical_details": "Details for the physical storage"
-    },
-    "authentication": {
-        "authentication_type": "See Authentication",
-        "authentication_details": "Details for the authentication"
-    }
+    "server" : "See Server",
+    "physical": "See Physical",
+    "authentication": "See Authentication"
+}
+```
+
+## Configuration: Server
+
+Server Settings.
+
+```json
+{
+    "socket_addr": "Listen address for the server, Example: `127.0.0.1:8080`",
 }
 ```
 
 ## Configuration: Physical
 
 Persistence layer for the seed data.
+
+```json
+{
+    "physical_type": "Type of physical storage",
+    "physical_details": "Details for the physical storage"
+}
+```
 
 - `libsql`
 
@@ -43,6 +54,13 @@ Persistence layer for the seed data.
 ## Configuration: Authentication
 
 Authentication layer for the API.
+
+```json
+{
+    "authentication_type": "Type of authentication",
+    "authentication_details": "Details for the authentication"
+}
+```
 
 - `admin_api_key`
 
