@@ -17,7 +17,10 @@ impl Authentication {
         }
     }
 
-    pub fn is_authenticate(&self, auth_token: &str) -> bool {
+    pub fn is_authenticate(&self, auth_token: &str, _: &str, resource: &str) -> bool {
+        if resource.starts_with("/health") {
+            return true;
+        }
         if self.authentication_type == "admin_api_key" {
             let admin_api_key = self.authentication_details["api_key"].as_str().unwrap();
             if auth_token == admin_api_key {

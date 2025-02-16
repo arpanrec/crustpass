@@ -2,10 +2,10 @@ mod authentication;
 mod secret;
 
 use crate::{configuration::Server, routers::authentication::auth_layer, AppState};
-use axum::response::IntoResponse;
 use axum::{
     http::Response,
     middleware,
+    response::IntoResponse,
     routing::{any, get},
     serve, Router,
 };
@@ -29,7 +29,6 @@ async fn handle_health() -> impl IntoResponse {
         .body("OK".to_string())
         .unwrap()
 }
-
 pub async fn axum_server(server: Server, app_state: AppState) {
     let addr: SocketAddr = server.socket_addr.parse().unwrap();
     let app = Router::new()
