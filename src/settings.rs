@@ -29,7 +29,10 @@ pub fn load_configuration() -> Configuration {
         println!("SQ_SETTINGS_JSON_FILE and SQ_SETTINGS_JSON not set, using default file: {}", app_settings_file);
         app_settings_json = fs::read_to_string(app_settings_file).expect("Unable to read the file");
     } else if app_settings_file != "" && app_settings_json != "" {
-        println!("SQ_SETTINGS_JSON_FILE and SQ_SETTINGS_JSON both set, using SQ_SETTINGS_JSON_FILE file: {}", app_settings_file);
+        println!(
+            "SQ_SETTINGS_JSON_FILE and SQ_SETTINGS_JSON both set, using SQ_SETTINGS_JSON_FILE file: {}",
+            app_settings_file
+        );
         app_settings_json = fs::read_to_string(app_settings_file).expect("Unable to read the file");
     } else if app_settings_file != "" && app_settings_json == "" {
         println!("SQ_SETTINGS_JSON_FILE set, using file: {}", app_settings_file);

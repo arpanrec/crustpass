@@ -1,5 +1,4 @@
-use libsql::Builder;
-use libsql::Connection;
+use libsql::{Builder, Connection};
 use serde::Deserialize;
 use std::time::{SystemTime, UNIX_EPOCH};
 // CREATE TABLE secrets_d (

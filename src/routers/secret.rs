@@ -1,9 +1,9 @@
+use crate::AppState;
 use axum::{
     extract::{Path, State},
     http::{Response, StatusCode},
 };
 use tracing::{debug, info};
-use crate::AppState;
 
 pub async fn handle_get(Path(path): Path<String>, State(state): State<AppState>) -> Response<String> {
     info!("Received get request for key: {}", path);
