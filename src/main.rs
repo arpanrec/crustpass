@@ -4,7 +4,7 @@ mod enc;
 mod physical;
 mod routers;
 
-use crate::{authentication::Authentication, physical::Physical, routers::axum_server};
+use crate::{authentication::Authentication, physical::Physical};
 use tracing::{debug, info};
 
 #[derive(Clone, Debug)]
@@ -28,6 +28,6 @@ fn main() {
     let rt =
         tokio::runtime::Builder::new_multi_thread().worker_threads(4).enable_all().build().unwrap();
     rt.block_on(async {
-        axum_server(server, app_state).await;
+        routers::main(server, app_state).await;
     });
 }
