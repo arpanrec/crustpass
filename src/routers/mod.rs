@@ -2,7 +2,13 @@ mod authentication;
 mod secret;
 
 use crate::{configuration::Server, routers::authentication::auth_layer, AppState};
-use axum::{http::Response, middleware, routing, routing::get, serve, Router};
+use axum::response::IntoResponse;
+use axum::{
+    http::Response,
+    middleware,
+    routing::{any, get},
+    serve, Router,
+};
 use std::net::SocketAddr;
 use tracing::info;
 
@@ -16,12 +22,20 @@ fn get_secret_router() -> Router<AppState> {
 async fn handle_any() -> Response<String> {
     Response::new("".to_string())
 }
+async fn handle_health() -> impl IntoResponse {
+    Response::builder()
+        .status(200)
+        .header("Content-Type", "text/plain")
+        .body("OK".to_string())
+        .unwrap()
+}
 
 pub async fn axum_server(server: Server, app_state: AppState) {
     let addr: SocketAddr = server.socket_addr.parse().unwrap();
     let app = Router::new()
         .nest("/secret", get_secret_router())
-        .route("/{*key}", routing::any(handle_any))
+        .route("/{*key}", any(handle_any))
+        .route("/health", any(handle_health))
         .layer(middleware::from_fn_with_state(app_state.clone(), auth_layer))
         .with_state(app_state);
     info!("Starting server on: {}", addr);
