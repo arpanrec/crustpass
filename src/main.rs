@@ -1,10 +1,10 @@
-mod auth;
+mod authentication;
+mod configuration;
 mod enc;
 mod physical;
 mod routers;
-mod configuration;
 
-use crate::{auth::Authentication, physical::Physical, routers::axum_server};
+use crate::{authentication::Authentication, physical::Physical, routers::axum_server};
 use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
