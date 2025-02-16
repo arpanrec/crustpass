@@ -9,6 +9,7 @@ use axum::{
     routing::{any, get},
     serve, Router,
 };
+use axum_server::tls_rustls::RustlsConfig;
 use std::net::SocketAddr;
 use tracing::info;
 
@@ -38,6 +39,7 @@ pub async fn axum_server(server: Server, app_state: AppState) {
         .layer(middleware::from_fn_with_state(app_state.clone(), auth_layer))
         .with_state(app_state);
     info!("Starting server on: {}", addr);
+    let config = RustlsConfig::from_der()
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     serve(listener, app.into_make_service_with_connect_info::<SocketAddr>()).await.unwrap();
 }
