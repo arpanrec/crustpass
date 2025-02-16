@@ -1,11 +1,12 @@
 mod auth;
+mod enc;
 mod physical;
 mod routers;
 mod settings;
 
+use crate::auth::Authentication;
+use crate::physical::Physical;
 use crate::routers::get_secret_router;
-use auth::Authentication;
-use physical::Physical;
 
 use axum::{
     extract::{ConnectInfo, Request, State},
