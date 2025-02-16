@@ -1,11 +1,6 @@
-# [2.0.0](https://github.com/arpanrec/crustpass/compare/1.2.1...2.0.0) (2025-02-16)
+## [2.0.1](https://github.com/arpanrec/crustpass/compare/2.0.0...2.0.1) (2025-02-16)
 
 
-### Features
+### Bug Fixes
 
-* restructure ([#7](https://github.com/arpanrec/crustpass/issues/7)) ([85fcd7a](https://github.com/arpanrec/crustpass/commit/85fcd7a1ad6348c2654bda45e6b208e54ceb1f5a))
-
-
-### BREAKING CHANGES
-
-* Change in application settings.
+* improve tracing subscriber configuration for better logging ([6aac35e](https://github.com/arpanrec/crustpass/commit/6aac35e844b037c327bd7e99ea2709dcf032d3a5))
