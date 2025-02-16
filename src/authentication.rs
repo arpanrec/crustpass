@@ -17,16 +17,19 @@ impl Authentication {
         }
     }
 
-    pub fn is_authenticate(&self, auth_token: &str, _: &str, resource: &str) -> bool {
-        if resource.starts_with("/health") {
+    pub fn is_authorized(&self, auth_token: Option<String>, _: String, resource: String) -> bool {
+        if resource == "/health" {
             return true;
         }
+        let mut is_authorized = false;
         if self.authentication_type == "admin_api_key" {
             let admin_api_key = self.authentication_details["api_key"].as_str().unwrap();
-            if auth_token == admin_api_key {
-                return true;
+            if let Some(auth_token) = auth_token {
+                if auth_token == admin_api_key {
+                    is_authorized = true;
+                }
             }
         }
-        false
+        is_authorized
     }
 }

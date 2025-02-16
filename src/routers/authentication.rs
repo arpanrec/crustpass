@@ -14,15 +14,15 @@ pub async fn auth_layer(
     request: Request,
     next: Next,
 ) -> impl IntoResponse {
-    let authentication = app_state.authentication.clone();
-    let mut is_authorized = false;
     let uri = request.uri().path();
     let method = request.method().as_str();
+    let mut auth_token: Option<String> = None;
     if let Some(header) = request.headers().get("Authorization") {
-        if let Ok(value) = header.to_str() {
-            is_authorized = authentication.is_authenticate(value, method, uri);
-        }
+        auth_token = Some(header.to_str().unwrap().to_string());
     }
+    let authentication = app_state.authentication.clone();
+    let is_authorized =
+        authentication.is_authorized(auth_token, method.to_string(), uri.to_string());
     if is_authorized {
         next.run(request).await.into_response()
     } else {
