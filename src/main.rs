@@ -6,7 +6,7 @@ mod routers;
 
 use crate::{authentication::Authentication, physical::Physical, routers::axum_server};
 use tracing::{debug, info};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use tracing_subscriber::EnvFilter;
 
 #[derive(Clone, Debug)]
 struct AppState {
@@ -16,12 +16,11 @@ struct AppState {
 
 // #[tokio::main]
 fn main() {
-    tracing_subscriber::registry()
-        .with(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| format!("{}=debug,tower_http=debug", env!("CARGO_CRATE_NAME")).into()),
-        )
-        .with(tracing_subscriber::fmt::layer())
+    tracing_subscriber::fmt()
+        .with_thread_names(false)
+        .with_line_number(true)
+        .with_max_level(tracing::Level::INFO)
+        .with_env_filter(EnvFilter::from_default_env())
         .init();
     info!("Starting Application...");
     let configuration = configuration::load_configuration();
