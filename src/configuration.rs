@@ -27,23 +27,23 @@ pub struct Configuration {
 }
 
 pub fn load_configuration() -> Configuration {
-    let mut app_settings_file = std::env::var("SQ_SETTINGS_JSON_FILE").unwrap_or("".to_string());
-    let mut app_settings_json = std::env::var("SQ_SETTINGS_JSON").unwrap_or("".to_string());
+    let mut app_settings_file = std::env::var("SQ_CONFIGURATION_JSON_FILE").unwrap_or("".to_string());
+    let mut app_settings_json = std::env::var("SQ_CONFIGURATION_JSON").unwrap_or("".to_string());
     if app_settings_file == "" && app_settings_json == "" {
         app_settings_file = "app_settings.json".to_string();
-        println!("SQ_SETTINGS_JSON_FILE and SQ_SETTINGS_JSON not set, using default file: {}", app_settings_file);
+        println!("SQ_CONFIGURATION_JSON_FILE and SQ_CONFIGURATION_JSON not set, using default file: {}", app_settings_file);
         app_settings_json = fs::read_to_string(app_settings_file).expect("Unable to read the file");
     } else if app_settings_file != "" && app_settings_json != "" {
         println!(
-            "SQ_SETTINGS_JSON_FILE and SQ_SETTINGS_JSON both set, using SQ_SETTINGS_JSON_FILE file: {}",
+            "SQ_CONFIGURATION_JSON_FILE and SQ_CONFIGURATION_JSON both set, using SQ_CONFIGURATION_JSON_FILE file: {}",
             app_settings_file
         );
         app_settings_json = fs::read_to_string(app_settings_file).expect("Unable to read the file");
     } else if app_settings_file != "" && app_settings_json == "" {
-        println!("SQ_SETTINGS_JSON_FILE set, using file: {}", app_settings_file);
+        println!("SQ_CONFIGURATION_JSON_FILE set, using file: {}", app_settings_file);
         app_settings_json = fs::read_to_string(app_settings_file).expect("Unable to read the file");
     } else if app_settings_json != "" && app_settings_file == "" {
-        println!("SQ_SETTINGS_JSON set, using JSON");
+        println!("SQ_CONFIGURATION_JSON set, using JSON");
     } else {
         panic!("Something went wrong with the settings");
     }

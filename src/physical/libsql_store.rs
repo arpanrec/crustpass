@@ -24,7 +24,7 @@ pub struct LibSQLPhysical {
 }
 
 impl LibSQLPhysical {
-    pub fn new(physical: crate::settings::Physical) -> Self {
+    pub fn new(physical: crate::configuration::Physical) -> Self {
         if physical.physical_type != "libsql" {
             panic!("Only sqlite is supported at this time");
         }

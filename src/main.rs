@@ -2,7 +2,7 @@ mod auth;
 mod enc;
 mod physical;
 mod routers;
-mod settings;
+mod configuration;
 
 use crate::{auth::Authentication, physical::Physical, routers::axum_server};
 use tracing::{debug, info};
@@ -24,7 +24,7 @@ fn main() {
         .with(tracing_subscriber::fmt::layer())
         .init();
     info!("Starting Application...");
-    let configuration = settings::load_configuration();
+    let configuration = configuration::load_configuration();
     debug!("Server configuration: {:?}", configuration);
     let server = configuration.server.clone();
     let app_state = AppState {

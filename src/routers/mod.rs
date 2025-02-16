@@ -1,7 +1,7 @@
 mod auth;
 mod secret;
 
-use crate::{routers::auth::auth_layer, settings::Server, AppState};
+use crate::{routers::auth::auth_layer, configuration::Server, AppState};
 use axum::{http::Response, middleware, routing, routing::get, serve, Router};
 use std::net::SocketAddr;
 use tracing::info;

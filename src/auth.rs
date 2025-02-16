@@ -7,7 +7,7 @@ pub struct Authentication {
 }
 
 impl Authentication {
-    pub fn new(authentication: crate::settings::Authentication) -> Authentication {
+    pub fn new(authentication: crate::configuration::Authentication) -> Authentication {
         match authentication.authentication_type.as_str() {
             "admin_api_key" => Authentication {
                 authentication_type: "admin_api_key".to_string(),
