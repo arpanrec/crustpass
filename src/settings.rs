@@ -3,6 +3,11 @@ use serde_json::Value;
 use std::fs;
 
 #[derive(Debug, Deserialize, Clone)]
+pub struct Server {
+    pub socket_addr: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
 pub struct Physical {
     pub physical_type: String,
     pub physical_details: Value,
@@ -16,7 +21,7 @@ pub struct Authentication {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Configuration {
-    pub socket_addr: String,
+    pub server: Server,
     pub physical: Physical,
     pub authentication: Authentication,
 }

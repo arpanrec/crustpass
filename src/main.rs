@@ -26,8 +26,14 @@ fn main() {
     info!("Starting Application...");
     let configuration = settings::load_configuration();
     debug!("Server configuration: {:?}", configuration);
+    let server = configuration.server.clone();
+    let app_state = AppState {
+        physical: Physical::new(configuration.physical.clone()),
+        authentication: Authentication::new(configuration.authentication.clone()),
+    };
+
     let rt = tokio::runtime::Builder::new_multi_thread().worker_threads(4).enable_all().build().unwrap();
     rt.block_on(async {
-        axum_server(configuration).await;
+        axum_server(server, app_state).await;
     });
 }
