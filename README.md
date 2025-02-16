@@ -1,7 +1,5 @@
 # crustpass
 
-## Description
-
 Manage seed data for my home lab.
 
 ## Configuration
