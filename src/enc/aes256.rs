@@ -1,7 +1,7 @@
 use aes::cipher::{block_padding::Pkcs7, BlockDecryptMut, BlockEncryptMut, KeyIvInit};
 use base64::{prelude::BASE64_STANDARD, Engine};
 
-pub async fn aes256_enc(
+pub async fn encryption(
     key_str_base64: &String,
     iv_str_base64: &String,
     plaintext: &String,
@@ -25,7 +25,7 @@ pub async fn aes256_enc(
     ct_base64.to_string()
 }
 
-pub async fn aes256_dec(
+pub async fn decryption(
     key_str_base64: &String,
     iv_str_base64: &String,
     encrypted_text_base64: &String,
@@ -50,16 +50,16 @@ pub async fn aes256_dec(
 }
 
 #[tokio::test]
-async fn aes_test() {
+async fn test() {
     let key_str_base64 = "bCpu2ln1ivhkBlo1iYWfewMdi4yvQHEDnmClTj0ZNPU=".to_string();
     let iv_str_base64 = "+0Vfhn16YpMKYQNOvnP/AA==".to_string();
     let plaintext = "hello world! this is my plaintext.".to_string();
     let encrypted_text =
         "d618sNKZ9ouOIn4M5IiIanT5T14cJTJMxJ0d9xmo/hRf+TtuHB6G6tIkzq4viTSo".to_string();
-    let enc = aes256_enc(&key_str_base64, &iv_str_base64, &plaintext).await;
+    let enc = encryption(&key_str_base64, &iv_str_base64, &plaintext).await;
     println!("{:?}", enc);
     assert_eq!(enc, encrypted_text);
-    let dec = aes256_dec(&key_str_base64, &iv_str_base64, &enc).await;
+    let dec = decryption(&key_str_base64, &iv_str_base64, &enc).await;
     println!("{:?}", dec);
     assert_eq!(dec, plaintext);
 }
