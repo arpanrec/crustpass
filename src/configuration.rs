@@ -1,7 +1,6 @@
 use serde::Deserialize;
 use serde_json::Value;
-use std::fs;
-use std::sync::OnceLock;
+use std::{fs, sync::OnceLock};
 use tracing::info;
 
 #[derive(Debug, Deserialize, Clone)]
