@@ -6,7 +6,7 @@ use axum::{
     http::StatusCode,
     middleware,
     response::{IntoResponse, Response},
-    routing::{any, get},
+    routing::any,
     serve, Router,
 };
 
@@ -14,7 +14,8 @@ use std::{fmt::Display, net::SocketAddr};
 use tracing::info;
 
 #[derive(Debug)]
-enum ServerError {
+pub enum ServerError {
+    RouterError(String),
     NotFound(String),
     InternalServerError(String),
     Unauthorized(String),
@@ -28,6 +29,7 @@ impl Display for ServerError {
             ServerError::InternalServerError(e) => write!(f, "Internal Server Error: {}", e),
             ServerError::Unauthorized(e) => write!(f, "Unauthorized: {}", e),
             ServerError::MethodNotAllowed(e) => write!(f, "Method Not Allowed: {}", e),
+            ServerError::RouterError(e) => write!(f, "Router Error: {}", e),
         }
     }
 }
@@ -49,33 +51,46 @@ impl IntoResponse for ServerError {
                 (StatusCode::METHOD_NOT_ALLOWED, format!("Method Not Allowed: {}", e))
                     .into_response()
             }
+            ServerError::RouterError(e) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, format!("Router Error: {}", e)).into_response()
+            }
         }
     }
 }
 
 fn get_secret_router() -> Router<AppState> {
-    Router::new().route("/{*key}", get(secret::secret))
+    Router::new().route("/{*key}", any(secret::secret))
 }
 
-// async fn handle_any() -> Result<impl IntoResponse, crate::routers::ServerError> {
-//     Err(crate::routers::ServerError::MethodNotAllowed("Method not allowed".to_string()))
-// }
-async fn handle_health() -> impl IntoResponse {
+async fn handle_any() -> Result<impl IntoResponse, ServerError> {
+    Err::<Response, ServerError>(ServerError::MethodNotAllowed("Unknown Resource".to_string()))
+        as Result<_, ServerError>
+}
+async fn handle_health() -> Result<impl IntoResponse, ServerError> {
     Response::builder()
         .status(200)
         .header("Content-Type", "text/plain")
         .body("OK".to_string())
-        .unwrap()
+        .map_err(|e| ServerError::InternalServerError(format!("Error creating response: {}", e)))
 }
-pub async fn axum_server(server: Server, app_state: AppState) {
-    let addr: SocketAddr = server.socket_addr.parse().unwrap();
+pub async fn axum_server(server: Server, app_state: AppState) -> Result<(), ServerError> {
+    let addr: SocketAddr = server.socket_addr.parse().map_err(|e| {
+        ServerError::RouterError(format!(
+            "Unable to parse address: {}, error: {}",
+            server.socket_addr, e
+        ))
+    })?;
     let app = Router::new()
         .nest("/secret", get_secret_router())
-        // .route("/{*key}", any(handle_any))
+        .route("/{*key}", any(handle_any))
         .route("/health", any(handle_health))
         .layer(middleware::from_fn_with_state(app_state.clone(), auth_layer))
         .with_state(app_state);
     info!("Starting server on: {}", addr);
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    serve(listener, app.into_make_service_with_connect_info::<SocketAddr>()).await.unwrap();
+    let listener = tokio::net::TcpListener::bind(addr).await.map_err(|e| {
+        ServerError::RouterError(format!("Unable to bind address: {}, error: {}", addr, e))
+    })?;
+    serve(listener, app.into_make_service_with_connect_info::<SocketAddr>())
+        .await
+        .map_err(|e| ServerError::RouterError(format!("Error serving: {}", e)))
 }
