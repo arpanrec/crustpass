@@ -1,6 +1,7 @@
 use serde::Deserialize;
 use serde_json::Value;
 use std::fs;
+use std::sync::OnceLock;
 use tracing::info;
 
 #[derive(Debug, Deserialize, Clone)]
@@ -27,7 +28,7 @@ pub struct Configuration {
     pub authentication: Authentication,
 }
 
-pub fn load_configuration() -> Configuration {
+pub fn load_configuration() -> &'static Configuration {
     let mut configuration_file =
         std::env::var("CRUSTPASS_CONFIGURATION_FILE").unwrap_or("".to_string());
     let mut configuration_json =
@@ -57,5 +58,8 @@ pub fn load_configuration() -> Configuration {
         panic!("Something went wrong with the settings");
     }
 
-    serde_json::from_str(configuration_json.as_str()).expect("Unable to parse App Settings")
+    static INST: OnceLock<Configuration> = OnceLock::new();
+    INST.get_or_init(|| {
+        serde_json::from_str(configuration_json.as_str()).expect("Unable to parse configuration")
+    })
 }
