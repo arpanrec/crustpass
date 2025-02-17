@@ -375,7 +375,7 @@ dependencies = [
 
 [[package]]
 name = "crustpass"
-version = "2.2.4"
+version = "2.2.5"
 dependencies = [
  "aes",
  "axum 0.8.1",
