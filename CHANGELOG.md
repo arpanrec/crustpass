@@ -1,6 +1,6 @@
-## [2.2.5](https://github.com/arpanrec/crustpass/compare/2.2.4...2.2.5) (2025-02-17)
+## [2.2.6](https://github.com/arpanrec/crustpass/compare/2.2.5...2.2.6) (2025-02-17)
 
 
 ### Bug Fixes
 
-* Physical libsql error msg ([964a757](https://github.com/arpanrec/crustpass/commit/964a75749484c9b3edadc355040d98ce9c414690))
+* improve log message for key request in secret router ([2f9174b](https://github.com/arpanrec/crustpass/commit/2f9174bed0b80d1ccf5d8f67a9590a8c2cc67ddc))
