@@ -25,8 +25,11 @@ fn main() {
         authentication: Authentication::new(configuration.authentication.clone()),
     };
 
-    let rt =
-        tokio::runtime::Builder::new_multi_thread().worker_threads(4).enable_all().build().unwrap();
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(4)
+        .enable_all()
+        .build()
+        .unwrap_or_else(|e| panic!("Error creating runtime: {:?}", e));
     rt.block_on(async {
         axum_server(server, app_state).await.unwrap_or_else(|e| {
             eprintln!("Error: {:?}", e);

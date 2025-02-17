@@ -30,7 +30,7 @@ impl LibSQLPhysical {
             panic!("Only sqlite is supported at this time");
         }
         let libsql_details: LibSQLDetails = serde_json::from_value(physical.physical_details)
-            .expect("Unable to parse storage_config");
+            .unwrap_or_else(|_| panic!("Error parsing libsql details"));
         LibSQLPhysical { libsql_details }
     }
 
@@ -41,9 +41,9 @@ impl LibSQLPhysical {
         )
         .build()
         .await
-        .map_err(|ex| PhysicalError::LibSQL(ex.to_string()))?
+        .map_err(|ex| PhysicalError::LibSQL(format!("Error building libsql connection: {}", ex)))?
         .connect()
-        .map_err(|ex| PhysicalError::LibSQL(ex.to_string()))
+        .map_err(|ex| PhysicalError::LibSQL(format!("Error connecting to libsql: {}", ex)))
     }
 
     async fn get_current_version(&mut self, key: &str) -> Result<i64, PhysicalError> {
@@ -56,9 +56,13 @@ impl LibSQLPhysical {
                 libsql::params![key],
             )
             .await
-            .map_err(|ex| PhysicalError::LibSQL(ex.to_string()))?;
+            .map_err(|ex| PhysicalError::LibSQL(
+                format!("Error performing libsql get_current_version: {}", ex)
+            ))?;
         if let Some(row) = rows.next().await.map_err(|ex| PhysicalError::LibSQL(ex.to_string()))? {
-            row.get(0).map_err(|ex| PhysicalError::LibSQL(ex.to_string()))
+            row.get(0).map_err(|ex| {
+                PhysicalError::LibSQL(format!("Error getting version from libsql: {}", ex))
+            })
         } else {
             Ok(0)
         }
@@ -73,9 +77,15 @@ impl LibSQLPhysical {
                 libsql::params![key],
             )
             .await
-            .map_err(|ex| PhysicalError::LibSQL(ex.to_string()))?;
-        if let Some(row) = rows.next().await.map_err(|ex| PhysicalError::LibSQL(ex.to_string()))? {
-            Ok(Some(row.get(0).map_err(|ex| PhysicalError::LibSQL(ex.to_string()))?))
+            .map_err(|ex| PhysicalError::LibSQL(
+                format!("Error performing libsql read: {}", ex)
+            ))?;
+        if let Some(row) = rows.next().await.map_err(|ex| {
+            PhysicalError::LibSQL(format!("Error getting next row from libsql: {}", ex))
+        })? {
+            Ok(Some(row.get(0).map_err(|ex| {
+                PhysicalError::LibSQL(format!("Error getting value from libsql: {}", ex))
+            })?))
         } else {
             Ok(None)
         }
@@ -84,22 +94,32 @@ impl LibSQLPhysical {
     pub async fn write(&mut self, key: &str, value: &str) -> Result<(), PhysicalError> {
         let table_name = self.libsql_details.table_name.to_string();
         let next_version = self.get_current_version(key).await? + 1;
-        let current_epoch_time: i64 =
-            SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
+        let current_epoch_time: i64 = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|ex| {
+                PhysicalError::LibSQL(format!("Error getting current epoch time: {}", ex))
+            })?
+            .as_secs() as i64;
         self.get_connection()
             .await?
             .execute(
                 &format!("INSERT INTO {table_name} (key_d, value_d, version_d, updated_at_d) VALUES (?, ?, ?, ?);"),
                 libsql::params![key, value, next_version, current_epoch_time],
             )
-            .await.map_err(|ex| PhysicalError::LibSQL(ex.to_string()))?;
+            .await.map_err(|ex| PhysicalError::LibSQL(
+            format!("Error performing libsql write: {}", ex)
+        ))?;
         Ok(())
     }
 
     pub async fn delete(&mut self, key: &str) -> Result<(), PhysicalError> {
         let table_name = self.libsql_details.table_name.to_string();
-        let current_epoch_time: i64 =
-            SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
+        let current_epoch_time: i64 = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|ex| {
+                PhysicalError::LibSQL(format!("Error getting current epoch time: {}", ex))
+            })?
+            .as_secs() as i64;
         self.get_connection()
             .await?
             .execute(
@@ -109,7 +129,9 @@ impl LibSQLPhysical {
                 libsql::params![current_epoch_time, key],
             )
             .await
-            .map_err(|ex| PhysicalError::LibSQL(ex.to_string()))?;
+            .map_err(|ex| {
+                PhysicalError::LibSQL(format!("Error performing libsql delete: {}", ex))
+            })?;
         Ok(())
     }
 }
