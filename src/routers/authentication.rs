@@ -28,7 +28,9 @@ pub async fn auth_layer(
     }
     let authentication = app_state.authentication.clone();
     let is_authorized =
-        authentication.is_authorized(auth_token, method.to_string(), uri.to_string());
+        authentication.is_authorized(auth_token, method.to_string(), uri.to_string()).map_err(
+            |e| crate::routers::ServerError::Unauthorized(format!("Error authorizing: {}", e)),
+        )?;
     if is_authorized {
         Ok(next.run(request).await.into_response())
     } else {

@@ -22,9 +22,9 @@ pub async fn secret(
                     "Error reading key: {}",
                     e
                 ))
-            });
+            })?;
             debug!("Read value: {:?}", value);
-            if let Ok(Some(value)) = value {
+            if let Some(value) = value {
                 debug!("Found value: {}", value);
                 Ok(Response::builder()
                     .status(StatusCode::OK)
@@ -32,7 +32,7 @@ pub async fn secret(
                     .body(value)
                     .map_err(|e| {
                         crate::routers::ServerError::InternalServerError(format!(
-                            "Error reading key: {}",
+                            "Error creating GET response: {}",
                             e
                         ))
                     })?)
@@ -57,7 +57,7 @@ pub async fn secret(
                     .body("".to_string())
                     .map_err(|e| {
                         crate::routers::ServerError::InternalServerError(format!(
-                            "Error creating key: {}",
+                            "Error creating POST response: {}",
                             e
                         ))
                     })?)
@@ -76,7 +76,7 @@ pub async fn secret(
                     .body("".to_string())
                     .map_err(|e| {
                         crate::routers::ServerError::InternalServerError(format!(
-                            "Error deleting key: {}",
+                            "Error creating DELETE response: {}",
                             e
                         ))
                     })?)
