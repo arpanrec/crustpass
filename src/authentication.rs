@@ -7,13 +7,13 @@ pub struct Authentication {
 }
 
 pub enum AuthenticationError {
-    Unauthenticated(String),
+    Error(String),
 }
 
 impl std::fmt::Display for AuthenticationError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            AuthenticationError::Unauthenticated(e) => write!(f, "Unauthenticated: {}", e),
+            AuthenticationError::Error(e) => write!(f, "Error: {}", e),
         }
     }
 }
@@ -43,17 +43,15 @@ impl Authentication {
             let auth_token = match auth_token {
                 Some(token) => token,
                 None => {
-                    return Err(AuthenticationError::Unauthenticated(
-                        "No token provided".to_string(),
-                    ))
+                    return Ok(false);
                 }
             };
             let admin_api_key = self.authentication_details["api_key"].as_str();
             let admin_api_key = match admin_api_key {
                 Some(key) => key,
                 None => {
-                    return Err(AuthenticationError::Unauthenticated(
-                        "No api key provided".to_string(),
+                    return Err(AuthenticationError::Error(
+                        "No Api key configured in the server".to_string(),
                     ))
                 }
             };
