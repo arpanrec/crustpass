@@ -42,12 +42,20 @@ impl Authentication {
         if self.authentication_type == "admin_api_key" {
             let auth_token = match auth_token {
                 Some(token) => token,
-                None => return Err(AuthenticationError::Unauthenticated("No token provided".to_string())),
+                None => {
+                    return Err(AuthenticationError::Unauthenticated(
+                        "No token provided".to_string(),
+                    ))
+                }
             };
             let admin_api_key = self.authentication_details["api_key"].as_str();
             let admin_api_key = match admin_api_key {
                 Some(key) => key,
-                None => return Err(AuthenticationError::Unauthenticated("No api key provided".to_string())),
+                None => {
+                    return Err(AuthenticationError::Unauthenticated(
+                        "No api key provided".to_string(),
+                    ))
+                }
             };
             if auth_token == admin_api_key {
                 is_authorized = true;
