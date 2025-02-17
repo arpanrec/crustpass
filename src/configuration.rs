@@ -1,6 +1,6 @@
 use serde::Deserialize;
 use serde_json::Value;
-use std::fs;
+use std::{fs, sync::OnceLock};
 use tracing::info;
 
 #[derive(Debug, Deserialize, Clone)]
@@ -27,7 +27,7 @@ pub struct Configuration {
     pub authentication: Authentication,
 }
 
-pub fn load_configuration() -> Configuration {
+pub fn load_configuration() -> &'static Configuration {
     let mut configuration_file =
         std::env::var("CRUSTPASS_CONFIGURATION_FILE").unwrap_or("".to_string());
     let mut configuration_json =
@@ -38,24 +38,29 @@ pub fn load_configuration() -> Configuration {
             "CRUSTPASS_CONFIGURATION_FILE and CRUSTPASS_CONFIGURATION_JSON not set, using default file: {}",
             configuration_file
         );
-        configuration_json =
-            fs::read_to_string(configuration_file).expect("Unable to read the file");
+        configuration_json = fs::read_to_string(configuration_file.clone()).unwrap_or_else(|e| {
+            panic!("Unable to read the default file: {}, {}", configuration_file.clone(), e)
+        });
     } else if configuration_file != "" && configuration_json != "" {
         info!(
             "CRUSTPASS_CONFIGURATION_FILE and CRUSTPASS_CONFIGURATION_JSON both set, using CRUSTPASS_CONFIGURATION_FILE file: {}",
             configuration_file
         );
-        configuration_json =
-            fs::read_to_string(configuration_file).expect("Unable to read the file");
+        configuration_json = fs::read_to_string(configuration_file.clone())
+            .unwrap_or_else(|e| panic!("Unable to read the file: {}, {}", configuration_file, e));
     } else if configuration_file != "" && configuration_json == "" {
         info!("CRUSTPASS_CONFIGURATION_FILE set, using file: {}", configuration_file);
-        configuration_json =
-            fs::read_to_string(configuration_file).expect("Unable to read the file");
+        configuration_json = fs::read_to_string(configuration_file.clone())
+            .unwrap_or_else(|e| panic!("Unable to read the file: {}, {}", configuration_file, e));
     } else if configuration_json != "" && configuration_file == "" {
         info!("CRUSTPASS_CONFIGURATION_JSON set, using JSON");
     } else {
         panic!("Something went wrong with the settings");
     }
 
-    serde_json::from_str(configuration_json.as_str()).expect("Unable to parse App Settings")
+    static INST: OnceLock<Configuration> = OnceLock::new();
+    INST.get_or_init(|| {
+        serde_json::from_str(configuration_json.as_str())
+            .unwrap_or_else(|e| panic!("Error parsing configuration JSON: {}", e))
+    })
 }

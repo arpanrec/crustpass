@@ -1,6 +1,7 @@
 use aes::cipher::{block_padding::Pkcs7, BlockDecryptMut, BlockEncryptMut, KeyIvInit};
 use base64::{prelude::BASE64_STANDARD, Engine};
 
+#[allow(dead_code)]
 pub async fn encryption(
     key_str_base64: &String,
     iv_str_base64: &String,
@@ -25,6 +26,7 @@ pub async fn encryption(
     ct_base64.to_string()
 }
 
+#[allow(dead_code)]
 pub async fn decryption(
     key_str_base64: &String,
     iv_str_base64: &String,
