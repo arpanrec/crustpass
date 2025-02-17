@@ -1,58 +1,73 @@
-use crate::AppState;
+use crate::{
+    routers::ServerError::{self, InternalServerError, MethodNotAllowed, NotFound},
+    AppState,
+};
 use axum::{
     extract::{Path, State},
-    http::{Response, StatusCode},
+    http::{Method, Response, StatusCode},
+    response::IntoResponse,
 };
 use tracing::{debug, info};
 
-pub async fn handle_get(
-    Path(path): Path<String>,
-    State(state): State<AppState>,
-) -> Response<String> {
-    info!("Received get request for key: {}", path);
-    let mut storage = state.physical;
-    let value = storage.read(&path).await;
-    debug!("Read value: {:?}", value);
-    let builder = Response::builder();
-    if let Some(value) = value {
-        debug!("Found value: {}", value);
-        builder
-            .status(StatusCode::OK)
-            .header("Content-Type", "text/plain")
-            .body(value)
-            .expect("Failed to send response")
-    } else {
-        debug!("Not Found");
-        builder
-            .status(StatusCode::NOT_FOUND)
-            .header("Content-Type", "text/plain")
-            .body("".to_string())
-            .expect("Failed to send response")
-    }
-}
-
-pub async fn handle_post(
+pub async fn secret(
+    method: Method,
     Path(path): Path<String>,
     State(state): State<AppState>,
     body: String,
-) -> Response<String> {
-    info!("Received post request for key: {}", path);
-    debug!("Received body: {}", body);
+) -> Result<impl IntoResponse, ServerError> {
+    info!("Received get request for key: {}", path);
     let mut storage = state.physical;
-    storage.write(&path, &body).await;
-    Response::builder()
-        .status(StatusCode::CREATED)
-        .header("Content-Type", "text/plain")
-        .body("".to_string())
-        .expect("Failed to send response")
-}
 
-pub async fn handle_delete(
-    Path(path): Path<String>,
-    State(state): State<AppState>,
-) -> Response<String> {
-    info!("Received delete request for key: {}", path);
-    let mut storage = state.physical;
-    storage.delete(&path).await;
-    Response::new("".to_string())
+    match method.as_str() {
+        "GET" => {
+            let value = storage
+                .read(&path)
+                .await
+                .map_err(|e| InternalServerError(format!("Error reading key: {}", e)))?;
+            debug!("Read value: {:?}", value);
+            if let Some(value) = value {
+                debug!("Found value: {}", value);
+                Ok(Response::builder()
+                    .status(StatusCode::OK)
+                    .header("Content-Type", "text/plain")
+                    .body(value)
+                    .map_err(|e| {
+                        InternalServerError(format!("Error creating GET response: {}", e))
+                    })?)
+            } else {
+                debug!("Key not found: {}", path);
+                Err(NotFound(format!("Key not found: {}", path)))
+            }
+        }
+        "POST" => {
+            debug!("Received body: {}", body);
+            let write_res = storage.write(&path, &body).await;
+
+            if let Err(e) = write_res {
+                Err(InternalServerError(format!("Error writing key: {}", e)))
+            } else {
+                Ok(Response::builder()
+                    .status(StatusCode::CREATED)
+                    .header("Content-Type", "text/plain")
+                    .body("".to_string())
+                    .map_err(|e| {
+                        InternalServerError(format!("Error creating POST response: {}", e))
+                    })?)
+            }
+        }
+        "DELETE" => {
+            if let Err(e) = storage.delete(&path).await {
+                Err(InternalServerError(format!("Error deleting key: {}", e)))
+            } else {
+                Ok(Response::builder()
+                    .status(StatusCode::NO_CONTENT)
+                    .header("Content-Type", "text/plain")
+                    .body("".to_string())
+                    .map_err(|e| {
+                        InternalServerError(format!("Error creating DELETE response: {}", e))
+                    })?)
+            }
+        }
+        _ => Err(MethodNotAllowed("Method not allowed".to_string())),
+    }
 }

@@ -24,5 +24,5 @@ async fn main() {
         physical: Physical::new(configuration.physical.clone()),
         authentication: Authentication::new(configuration.authentication.clone()),
     };
-    axum_server(server, app_state).await;
+    axum_server(server, app_state).await.unwrap_or_else(|e| panic!("Unable to start server: {}", e))
 }
