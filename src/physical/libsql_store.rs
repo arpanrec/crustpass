@@ -30,7 +30,7 @@ impl LibSQLPhysical {
             panic!("Only sqlite is supported at this time");
         }
         let libsql_details: LibSQLDetails = serde_json::from_value(physical.physical_details)
-            .unwrap_or_else(|_| panic!("Error parsing libsql details"));
+            .unwrap_or_else(|ex| panic!("Error parsing libsql details: {}", ex));
         LibSQLPhysical { libsql_details }
     }
 
