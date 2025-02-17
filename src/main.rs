@@ -13,8 +13,8 @@ struct AppState {
     authentication: Authentication,
 }
 
-// #[tokio::main]
-fn main() {
+#[tokio::main]
+async fn main() {
     tracing_subscriber::fmt::init();
     info!("Starting Application...");
     let configuration = configuration::load_configuration();
@@ -24,16 +24,5 @@ fn main() {
         physical: Physical::new(configuration.physical.clone()),
         authentication: Authentication::new(configuration.authentication.clone()),
     };
-
-    let rt = tokio::runtime::Builder::new_multi_thread()
-        .worker_threads(4)
-        .enable_all()
-        .build()
-        .unwrap_or_else(|e| panic!("Error creating runtime: {:?}", e));
-    rt.block_on(async {
-        axum_server(server, app_state).await.unwrap_or_else(|e| {
-            eprintln!("Error: {:?}", e);
-            std::process::exit(1);
-        })
-    });
+    axum_server(server, app_state).await.unwrap_or_else(|e| panic!("Unable to start server: {}", e))
 }
