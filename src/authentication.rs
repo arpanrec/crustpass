@@ -6,6 +6,18 @@ pub struct Authentication {
     authentication_details: Value,
 }
 
+pub enum AuthenticationError {
+    Unauthenticated(String),
+}
+
+impl std::fmt::Display for AuthenticationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            AuthenticationError::Unauthenticated(e) => write!(f, "Unauthenticated: {}", e),
+        }
+    }
+}
+
 impl Authentication {
     pub fn new(authentication: crate::configuration::Authentication) -> Authentication {
         match authentication.authentication_type.as_str() {
@@ -17,19 +29,38 @@ impl Authentication {
         }
     }
 
-    pub fn is_authorized(&self, auth_token: Option<String>, _: String, resource: String) -> bool {
+    pub fn is_authorized(
+        &self,
+        auth_token: Option<String>,
+        _uri: String,
+        resource: String,
+    ) -> Result<bool, AuthenticationError> {
         if resource == "/health" {
-            return true;
+            return Ok(true);
         }
         let mut is_authorized = false;
         if self.authentication_type == "admin_api_key" {
-            let admin_api_key = self.authentication_details["api_key"].as_str().unwrap();
-            if let Some(auth_token) = auth_token {
-                if auth_token == admin_api_key {
-                    is_authorized = true;
+            let auth_token = match auth_token {
+                Some(token) => token,
+                None => {
+                    return Err(AuthenticationError::Unauthenticated(
+                        "No token provided".to_string(),
+                    ))
                 }
+            };
+            let admin_api_key = self.authentication_details["api_key"].as_str();
+            let admin_api_key = match admin_api_key {
+                Some(key) => key,
+                None => {
+                    return Err(AuthenticationError::Unauthenticated(
+                        "No api key provided".to_string(),
+                    ))
+                }
+            };
+            if auth_token == admin_api_key {
+                is_authorized = true;
             }
         }
-        is_authorized
+        Ok(is_authorized)
     }
 }
