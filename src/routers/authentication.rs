@@ -20,7 +20,9 @@ pub async fn auth_layer(
         auth_token = Some(
             header
                 .to_str()
-                .map_err(|e| ServerError::InternalServerError(format!("Error parsing token: {}", e)))?
+                .map_err(|e| {
+                    ServerError::InternalServerError(format!("Error parsing token: {}", e))
+                })?
                 .to_string(),
         );
     }

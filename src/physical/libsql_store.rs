@@ -48,18 +48,19 @@ impl LibSQLPhysical {
 
     async fn get_current_version(&mut self, key: &str) -> Result<i64, PhysicalError> {
         let table_name = self.libsql_details.table_name.clone();
-        let mut rows = self
-            .get_connection()
-            .await?
-            .query(
-                &format!("SELECT version_d FROM {table_name} WHERE key_d = ? ORDER BY version_d DESC LIMIT 1;"),
-                libsql::params![key],
-            )
-            .await
-            .map_err(|ex| PhysicalError::LibSQL(
-                format!("Error performing libsql get_current_version: {}", ex)
-            ))?;
-        if let Some(row) = rows.next().await.map_err(|ex| PhysicalError::LibSQL(ex.to_string()))? {
+        let sql = &format!(
+            "SELECT version_d FROM {table_name} WHERE key_d = ? ORDER BY version_d DESC LIMIT 1;"
+        );
+        let mut rows =
+            self.get_connection().await?.query(sql, libsql::params![key]).await.map_err(|ex| {
+                PhysicalError::LibSQL(format!(
+                    "Error performing libsql get_current_version: {}",
+                    ex
+                ))
+            })?;
+        if let Some(row) = rows.next().await.map_err(|ex| {
+            PhysicalError::LibSQL(format!("Error getting next row from libsql: {}", ex))
+        })? {
             row.get(0).map_err(|ex| {
                 PhysicalError::LibSQL(format!("Error getting version from libsql: {}", ex))
             })
@@ -69,17 +70,13 @@ impl LibSQLPhysical {
     }
     pub async fn read(&mut self, key: &str) -> Result<Option<String>, PhysicalError> {
         let table_name = self.libsql_details.table_name.to_string();
-        let mut rows = self.get_connection().await?
-            .query(
-                &format!(
-                    "SELECT value_d FROM {table_name} WHERE key_d = ? AND is_deleted_d = 0 ORDER BY version_d DESC LIMIT 1;"
-                ),
-                libsql::params![key],
-            )
-            .await
-            .map_err(|ex| PhysicalError::LibSQL(
-                format!("Error performing libsql read: {}", ex)
-            ))?;
+        let sql =&format!(
+            "SELECT value_d FROM {table_name} WHERE key_d = ? AND is_deleted_d = 0 ORDER BY version_d DESC LIMIT 1;"
+        );
+        let mut rows =
+            self.get_connection().await?.query(sql, libsql::params![key]).await.map_err(|ex| {
+                PhysicalError::LibSQL(format!("Error performing libsql read: {}", ex))
+            })?;
         if let Some(row) = rows.next().await.map_err(|ex| {
             PhysicalError::LibSQL(format!("Error getting next row from libsql: {}", ex))
         })? {
@@ -100,15 +97,14 @@ impl LibSQLPhysical {
                 PhysicalError::LibSQL(format!("Error getting current epoch time: {}", ex))
             })?
             .as_secs() as i64;
+        let sql = &format!("INSERT INTO {table_name} (key_d, value_d, version_d, updated_at_d) VALUES (?, ?, ?, ?);");
         self.get_connection()
             .await?
-            .execute(
-                &format!("INSERT INTO {table_name} (key_d, value_d, version_d, updated_at_d) VALUES (?, ?, ?, ?);"),
-                libsql::params![key, value, next_version, current_epoch_time],
-            )
-            .await.map_err(|ex| PhysicalError::LibSQL(
-            format!("Error performing libsql write: {}", ex)
-        ))?;
+            .execute(sql, libsql::params![key, value, next_version, current_epoch_time])
+            .await
+            .map_err(|ex| {
+                PhysicalError::LibSQL(format!("Error performing libsql write: {}", ex))
+            })?;
         Ok(())
     }
 
@@ -120,14 +116,11 @@ impl LibSQLPhysical {
                 PhysicalError::LibSQL(format!("Error getting current epoch time: {}", ex))
             })?
             .as_secs() as i64;
+        let sql =
+            &format!("UPDATE {table_name} SET is_deleted_d = 1, updated_at_d = ? WHERE key_d = ?;");
         self.get_connection()
             .await?
-            .execute(
-                &format!(
-                    "UPDATE {table_name} SET is_deleted_d = 1, updated_at_d = ? WHERE key_d = ?;"
-                ),
-                libsql::params![current_epoch_time, key],
-            )
+            .execute(sql, libsql::params![current_epoch_time, key])
             .await
             .map_err(|ex| {
                 PhysicalError::LibSQL(format!("Error performing libsql delete: {}", ex))
