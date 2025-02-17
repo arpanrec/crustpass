@@ -1,6 +1,6 @@
-## [2.2.2](https://github.com/arpanrec/crustpass/compare/2.2.1...2.2.2) (2025-02-17)
+## [2.2.3](https://github.com/arpanrec/crustpass/compare/2.2.2...2.2.3) (2025-02-17)
 
 
 ### Bug Fixes
 
-* errors ([#8](https://github.com/arpanrec/crustpass/issues/8)) ([ca72cbc](https://github.com/arpanrec/crustpass/commit/ca72cbca54187687f4513f949e371758dac4f485))
+* simplify error handling in authentication and secret routes ([fb9c18f](https://github.com/arpanrec/crustpass/commit/fb9c18f28b573c7dec1ac0308762f280ad2704e0))
