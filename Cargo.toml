@@ -1,6 +1,6 @@
 [package]
 name = "crustpass"
-version = "2.2.4"
+version = "2.2.5"
 edition = "2021"
 rust-version = "1.84.1"
 description = "Manage seed data for my home lab."
