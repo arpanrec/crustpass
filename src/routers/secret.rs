@@ -15,7 +15,7 @@ pub async fn secret(
     State(state): State<AppState>,
     body: String,
 ) -> Result<impl IntoResponse, ServerError> {
-    info!("Received get request for key: {}", path);
+    info!("Received request for key: {}", path);
     let mut storage = state.physical;
 
     match method.as_str() {
