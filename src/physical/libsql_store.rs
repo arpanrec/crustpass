@@ -1,3 +1,4 @@
+use crate::physical::PhysicalError;
 use libsql::{Builder, Connection};
 use serde::Deserialize;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -23,10 +24,6 @@ pub struct LibSQLPhysical {
     libsql_details: LibSQLDetails,
 }
 
-pub enum LibSQLPhysicalError {
-    ConnectionError(libsql::Error),
-}
-
 impl LibSQLPhysical {
     pub fn new(physical: crate::configuration::Physical) -> Self {
         if physical.physical_type != "libsql" {
@@ -37,19 +34,19 @@ impl LibSQLPhysical {
         LibSQLPhysical { libsql_details }
     }
 
-    async fn get_connection(&mut self) -> Result<Connection, LibSQLPhysicalError> {
+    async fn get_connection(&mut self) -> Result<Connection, PhysicalError> {
         Builder::new_remote(
             self.libsql_details.db_url.clone(),
             self.libsql_details.auth_token.clone(),
         )
         .build()
         .await
-        .map_err(|ex| LibSQLPhysicalError::ConnectionError(ex))?
+        .map_err(|ex| PhysicalError::LibSQL(ex.to_string()))?
         .connect()
-        .map_err(|ex| LibSQLPhysicalError::ConnectionError(ex))
+        .map_err(|ex| PhysicalError::LibSQL(ex.to_string()))
     }
 
-    async fn get_current_version(&mut self, key: &str) -> Result<i64, LibSQLPhysicalError> {
+    async fn get_current_version(&mut self, key: &str) -> Result<i64, PhysicalError> {
         let table_name = self.libsql_details.table_name.clone();
         let mut rows = self
             .get_connection()
@@ -59,16 +56,14 @@ impl LibSQLPhysical {
                 libsql::params![key],
             )
             .await
-            .map_err(|ex| LibSQLPhysicalError::ConnectionError(ex))?;
-        if let Some(row) =
-            rows.next().await.map_err(|ex| LibSQLPhysicalError::ConnectionError(ex))?
-        {
-            row.get(0).map_err(|ex| LibSQLPhysicalError::ConnectionError(ex))
+            .map_err(|ex| PhysicalError::LibSQL(ex.to_string()))?;
+        if let Some(row) = rows.next().await.map_err(|ex| PhysicalError::LibSQL(ex.to_string()))? {
+            row.get(0).map_err(|ex| PhysicalError::LibSQL(ex.to_string()))
         } else {
             Ok(0)
         }
     }
-    pub async fn read(&mut self, key: &str) -> Result<Option<String>, LibSQLPhysicalError> {
+    pub async fn read(&mut self, key: &str) -> Result<Option<String>, PhysicalError> {
         let table_name = self.libsql_details.table_name.to_string();
         let mut rows = self.get_connection().await?
             .query(
@@ -78,17 +73,15 @@ impl LibSQLPhysical {
                 libsql::params![key],
             )
             .await
-            .map_err(|ex| LibSQLPhysicalError::ConnectionError(ex))?;
-        if let Some(row) =
-            rows.next().await.map_err(|ex| LibSQLPhysicalError::ConnectionError(ex))?
-        {
-            Ok(Some(row.get(0).map_err(|ex| LibSQLPhysicalError::ConnectionError(ex))?))
+            .map_err(|ex| PhysicalError::LibSQL(ex.to_string()))?;
+        if let Some(row) = rows.next().await.map_err(|ex| PhysicalError::LibSQL(ex.to_string()))? {
+            Ok(Some(row.get(0).map_err(|ex| PhysicalError::LibSQL(ex.to_string()))?))
         } else {
             Ok(None)
         }
     }
 
-    pub async fn write(&mut self, key: &str, value: &str) -> Result<(), LibSQLPhysicalError> {
+    pub async fn write(&mut self, key: &str, value: &str) -> Result<(), PhysicalError> {
         let table_name = self.libsql_details.table_name.to_string();
         let next_version = self.get_current_version(key).await? + 1;
         let current_epoch_time: i64 =
@@ -99,11 +92,11 @@ impl LibSQLPhysical {
                 &format!("INSERT INTO {table_name} (key_d, value_d, version_d, updated_at_d) VALUES (?, ?, ?, ?);"),
                 libsql::params![key, value, next_version, current_epoch_time],
             )
-            .await.map_err(|ex| LibSQLPhysicalError::ConnectionError(ex))?;
+            .await.map_err(|ex| PhysicalError::LibSQL(ex.to_string()))?;
         Ok(())
     }
 
-    pub async fn delete(&mut self, key: &str) -> Result<(), LibSQLPhysicalError> {
+    pub async fn delete(&mut self, key: &str) -> Result<(), PhysicalError> {
         let table_name = self.libsql_details.table_name.to_string();
         let current_epoch_time: i64 =
             SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
@@ -116,7 +109,7 @@ impl LibSQLPhysical {
                 libsql::params![current_epoch_time, key],
             )
             .await
-            .map_err(|ex| LibSQLPhysicalError::ConnectionError(ex))?;
+            .map_err(|ex| PhysicalError::LibSQL(ex.to_string()))?;
         Ok(())
     }
 }
