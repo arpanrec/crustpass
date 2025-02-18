@@ -22,11 +22,15 @@ Priorities: `CRUSTPASS_CONFIGURATION_FILE` > `CRUSTPASS_CONFIGURATION_JSON`
 
 ### Configuration: Server
 
-Server Settings.
+Server Settings. `tls` is optional.
 
 ```json
 {
     "socket_addr": "Listen address for the server, Example: `127.0.0.1:8080`",
+    "tls": {
+        "cert": "PEM encoded certificate",
+        "key": "PEM encoded private key"
+    }
 }
 ```
 
