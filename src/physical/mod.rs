@@ -9,15 +9,11 @@ pub enum Physical {
 }
 
 #[derive(Debug)]
-pub enum PhysicalError {
-    LibSQL(String),
-}
+pub struct PhysicalError(String);
 
 impl Display for PhysicalError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            PhysicalError::LibSQL(e) => write!(f, "LibSQL Error: {}", e),
-        }
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "Physical Error: {}", self.0)
     }
 }
 
@@ -31,19 +27,28 @@ impl Physical {
 
     pub async fn read(&mut self, key: &str) -> Result<Option<String>, PhysicalError> {
         match self {
-            Physical::LibSQL(physical_impl) => physical_impl.read(key).await,
+            Physical::LibSQL(physical_impl) => physical_impl
+                .read(key)
+                .await
+                .map_err(|e| PhysicalError(format!("Error reading from libsql: {}", e))),
         }
     }
 
     pub async fn write(&mut self, key: &str, value: &str) -> Result<(), PhysicalError> {
         match self {
-            Physical::LibSQL(physical_impl) => physical_impl.write(key, value).await,
+            Physical::LibSQL(physical_impl) => physical_impl
+                .write(key, value)
+                .await
+                .map_err(|e| PhysicalError(format!("Error writing to libsql: {}", e))),
         }
     }
 
     pub async fn delete(&mut self, key: &str) -> Result<(), PhysicalError> {
         match self {
-            Physical::LibSQL(physical_impl) => physical_impl.delete(key).await,
+            Physical::LibSQL(physical_impl) => physical_impl
+                .delete(key)
+                .await
+                .map_err(|e| PhysicalError(format!("Error deleting from libsql: {}", e))),
         }
     }
 }

@@ -1,6 +1,6 @@
-## [2.2.5](https://github.com/arpanrec/crustpass/compare/2.2.4...2.2.5) (2025-02-17)
+## [2.2.8](https://github.com/arpanrec/crustpass/compare/2.2.7...2.2.8) (2025-02-18)
 
 
 ### Bug Fixes
 
-* Physical libsql error msg ([964a757](https://github.com/arpanrec/crustpass/commit/964a75749484c9b3edadc355040d98ce9c414690))
+* replace PhysicalError enum with struct and simplify error formatting ([a90a356](https://github.com/arpanrec/crustpass/commit/a90a356773775d40ba85c1132a4fb66a1a195302))
