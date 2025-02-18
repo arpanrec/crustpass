@@ -50,7 +50,7 @@ impl IntoResponse for ServerError {
                     .into_response()
             }
             ServerError::RouterError(e) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, format!("Router Error: {}", e)).into_response()
+                panic!("Router Error, RouterErrors are not meant to be returned: {}", e)
             }
         }
     }
