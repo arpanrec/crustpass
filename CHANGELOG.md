@@ -1,6 +1,6 @@
-## [2.2.8](https://github.com/arpanrec/crustpass/compare/2.2.7...2.2.8) (2025-02-18)
+# [2.3.0](https://github.com/arpanrec/crustpass/compare/2.2.8...2.3.0) (2025-02-18)
 
 
-### Bug Fixes
+### Features
 
-* replace PhysicalError enum with struct and simplify error formatting ([a90a356](https://github.com/arpanrec/crustpass/commit/a90a356773775d40ba85c1132a4fb66a1a195302))
+* update dependencies and add optional TLS support for server ([#10](https://github.com/arpanrec/crustpass/issues/10)) ([e06d82f](https://github.com/arpanrec/crustpass/commit/e06d82f5f533b5880553f1c3e1eb0f9b0955ea6c))
