@@ -1,4 +1,5 @@
 mod authentication;
+mod logging;
 mod secret;
 
 use crate::{configuration::Server, routers::authentication::auth_layer, AppState};
@@ -11,7 +12,7 @@ use axum::{
 };
 use axum_server::tls_rustls::RustlsConfig;
 use std::{fmt::Display, net::SocketAddr};
-use tracing::info;
+use tracing::{info, warn};
 
 #[derive(Debug)]
 pub enum ServerError {
@@ -34,19 +35,32 @@ impl Display for ServerError {
 }
 impl IntoResponse for ServerError {
     fn into_response(self) -> Response {
+        let random = rand::random::<u32>();
         match self {
             ServerError::NotFound(e) => {
-                (StatusCode::NOT_FOUND, format!("Resource Not Found: {}", e)).into_response()
+                warn!("{} Resource Not Found: {}", random, e);
+                (StatusCode::NOT_FOUND, format!("Resource Not Found: Check logs for {}", random))
+                    .into_response()
             }
             ServerError::InternalServerError(e) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, format!("Internal Server Error: {}", e))
+                warn!("{} Resource Not Found: {}", random, e);
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Internal Server Error: Check logs for {}", random),
+                )
                     .into_response()
             }
             ServerError::Unauthorized(e) => {
-                (StatusCode::UNAUTHORIZED, format!("Unauthorized: {}", e)).into_response()
+                warn!("{} Unauthorized: {}", random, e);
+                (StatusCode::UNAUTHORIZED, format!("Unauthorized: Check logs for {}", random))
+                    .into_response()
             }
             ServerError::MethodNotAllowed(e) => {
-                (StatusCode::METHOD_NOT_ALLOWED, format!("Method Not Allowed: {}", e))
+                warn!("{} Method Not Allowed: {}", random, e);
+                (
+                    StatusCode::METHOD_NOT_ALLOWED,
+                    format!("Method Not Allowed: Check logs for {}", random),
+                )
                     .into_response()
             }
             ServerError::RouterError(e) => {
@@ -84,7 +98,8 @@ pub async fn axum_server(server: Server, app_state: AppState) -> Result<(), Serv
         .route("/{*key}", any(handle_any))
         .route("/health", any(handle_health))
         .layer(middleware::from_fn_with_state(app_state.clone(), auth_layer))
-        .with_state(app_state);
+        .with_state(app_state)
+        .layer(middleware::from_fn(logging::print_request_response));
 
     if let Some(server_tls) = server.tls {
         let config =
