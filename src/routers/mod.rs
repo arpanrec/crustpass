@@ -7,9 +7,9 @@ use axum::{
     middleware,
     response::{IntoResponse, Response},
     routing::any,
-    serve, Router,
+    Router,
 };
-
+use axum_server::tls_rustls::RustlsConfig;
 use std::{fmt::Display, net::SocketAddr};
 use tracing::info;
 
@@ -50,7 +50,7 @@ impl IntoResponse for ServerError {
                     .into_response()
             }
             ServerError::RouterError(e) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, format!("Router Error: {}", e)).into_response()
+                panic!("Router Error, RouterErrors are not meant to be returned: {}", e)
             }
         }
     }
@@ -71,6 +71,7 @@ async fn handle_health() -> Result<impl IntoResponse, ServerError> {
         .body("OK".to_string())
         .map_err(|e| ServerError::InternalServerError(format!("Error creating response: {}", e)))
 }
+//noinspection HttpUrlsUsage
 pub async fn axum_server(server: Server, app_state: AppState) -> Result<(), ServerError> {
     let addr: SocketAddr = server.socket_addr.parse().map_err(|e| {
         ServerError::RouterError(format!(
@@ -84,11 +85,28 @@ pub async fn axum_server(server: Server, app_state: AppState) -> Result<(), Serv
         .route("/health", any(handle_health))
         .layer(middleware::from_fn_with_state(app_state.clone(), auth_layer))
         .with_state(app_state);
-    info!("Starting server on: {}", addr);
-    let listener = tokio::net::TcpListener::bind(addr).await.map_err(|e| {
-        ServerError::RouterError(format!("Unable to bind address: {}, error: {}", addr, e))
-    })?;
-    serve(listener, app.into_make_service_with_connect_info::<SocketAddr>())
-        .await
-        .map_err(|e| ServerError::RouterError(format!("Error serving: {}", e)))
+
+    if let Some(server_tls) = server.tls {
+        let config =
+            RustlsConfig::from_pem(server_tls.cert.into_bytes(), server_tls.key.into_bytes())
+                .await
+                .map_err(|e| {
+                    ServerError::RouterError(format!("Error creating rustls TLS config: {}", e))
+                })?;
+        info!("Starting server with https://{}", addr);
+        axum_server::bind_rustls(addr, config)
+            .serve(app.into_make_service_with_connect_info::<SocketAddr>())
+            .await
+            .map_err(|e| {
+                ServerError::RouterError(format!("Error serving without rustls: {}", e.to_string()))
+            })
+    } else {
+        info!("Starting server on http://{}", addr);
+        axum_server::bind(addr)
+            .serve(app.into_make_service_with_connect_info::<SocketAddr>())
+            .await
+            .map_err(|e| {
+                ServerError::RouterError(format!("Error serving without rustls: {}", e.to_string()))
+            })
+    }
 }

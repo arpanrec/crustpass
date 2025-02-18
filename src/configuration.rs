@@ -4,8 +4,14 @@ use std::{fs, sync::OnceLock};
 use tracing::info;
 
 #[derive(Debug, Deserialize, Clone)]
+pub struct ServerTls {
+    pub cert: String,
+    pub key: String,
+}
+#[derive(Debug, Deserialize, Clone)]
 pub struct Server {
     pub socket_addr: String,
+    pub tls: Option<ServerTls>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
