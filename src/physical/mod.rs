@@ -31,19 +31,28 @@ impl Physical {
 
     pub async fn read(&mut self, key: &str) -> Result<Option<String>, PhysicalError> {
         match self {
-            Physical::LibSQL(physical_impl) => physical_impl.read(key).await,
+            Physical::LibSQL(physical_impl) => physical_impl
+                .read(key)
+                .await
+                .map_err(|e| PhysicalError::LibSQL(format!("Error reading from libsql: {}", e))),
         }
     }
 
     pub async fn write(&mut self, key: &str, value: &str) -> Result<(), PhysicalError> {
         match self {
-            Physical::LibSQL(physical_impl) => physical_impl.write(key, value).await,
+            Physical::LibSQL(physical_impl) => physical_impl
+                .write(key, value)
+                .await
+                .map_err(|e| PhysicalError::LibSQL(format!("Error writing to libsql: {}", e))),
         }
     }
 
     pub async fn delete(&mut self, key: &str) -> Result<(), PhysicalError> {
         match self {
-            Physical::LibSQL(physical_impl) => physical_impl.delete(key).await,
+            Physical::LibSQL(physical_impl) => physical_impl
+                .delete(key)
+                .await
+                .map_err(|e| PhysicalError::LibSQL(format!("Error deleting from libsql: {}", e))),
         }
     }
 }
