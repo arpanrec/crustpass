@@ -4,7 +4,7 @@ mod enc;
 mod physical;
 mod routers;
 
-use crate::{authentication::Authentication, physical::Physical};
+use crate::{authentication::Authentication, physical::Physical, routers::axum_server};
 use tracing::{debug, info};
 
 #[derive(Clone, Debug)]
