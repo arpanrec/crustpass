@@ -8,7 +8,6 @@ use crate::{
     SharedState,
 };
 use axum::{
-    extract::State,
     http::StatusCode,
     middleware,
     response::{IntoResponse, Response},
@@ -74,20 +73,16 @@ async fn handle_any() -> Result<impl IntoResponse, ServerError> {
 }
 
 async fn unlock(
-    State(shared_state): State<SharedState>,
     body: String,
 ) -> Result<impl IntoResponse, ServerError> {
-    let master_key = &shared_state
-        .write()
-        .map_err(|ex| {
-            ServerError::InternalServerError(format!("Error getting shared state: {}", ex))
-        })?
-        .master_key;
-
-    if let Some(_) = master_key.get() {
-        Err(ServerError::InternalServerError("Master key is already set".to_string()))
+    let master_key = &crate::physical::MASTER_ENCRYPTION_KEY;
+    if let Some((key, hash)) = master_key.get() {
+        Err(ServerError::InternalServerError(format!(
+            "Master key already set to key: {}, hash: {}",
+            key, hash
+        )))
     } else {
-        master_key.get_or_init(|| body);
+        master_key.get_or_init(|| (body.clone(), body.clone()));
         Response::builder()
             .status(200)
             .header("Content-Type", "text/plain")
