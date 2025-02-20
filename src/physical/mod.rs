@@ -9,7 +9,9 @@ use tracing::warn;
 pub(crate) enum Physical {
     LibSQL(LibSQLPhysical),
 }
-pub static MASTER_ENCRYPTION_KEY: OnceLock<(String, String)> = OnceLock::new();
+
+// (master_key, master_iv, hash(master_key:master_iv))
+pub static MASTER_ENCRYPTION_KEY: OnceLock<(String, String, String)> = OnceLock::new();
 
 #[derive(Debug)]
 pub(crate) struct PhysicalError(String);

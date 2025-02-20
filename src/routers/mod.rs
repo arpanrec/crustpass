@@ -15,6 +15,7 @@ use axum::{
     Router,
 };
 use axum_server::tls_rustls::RustlsConfig;
+use sha2::{Digest, Sha256};
 use std::{fmt::Display, net::SocketAddr, sync::Arc};
 use tracing::{info, warn};
 use uuid::Uuid;
@@ -72,17 +73,22 @@ async fn handle_any() -> Result<impl IntoResponse, ServerError> {
         as Result<_, ServerError>
 }
 
-async fn unlock(
-    body: String,
-) -> Result<impl IntoResponse, ServerError> {
+async fn unlock(body: String) -> Result<impl IntoResponse, ServerError> {
+    let master_key_iv = body.split(':').collect::<Vec<&str>>();
+    if master_key_iv.len() != 2 {
+        return Err(ServerError::Unauthorized("Invalid master key format".to_string()));
+    }
+    let mut hasher = Sha256::new();
+    hasher.update(body.as_bytes());
+    let result = hasher.finalize();
+    let hex_string = hex::encode(result);
     let master_key = &crate::physical::MASTER_ENCRYPTION_KEY;
-    if let Some((key, hash)) = master_key.get() {
-        Err(ServerError::InternalServerError(format!(
-            "Master key already set to key: {}, hash: {}",
-            key, hash
-        )))
+    if let Some((_, _, hash)) = master_key.get() {
+        Err(ServerError::MethodNotAllowed(format!("Master key already set, hash: {}", hash)))
     } else {
-        master_key.get_or_init(|| (body.clone(), body.clone()));
+        master_key.get_or_init(|| {
+            (master_key_iv[0].to_string(), master_key_iv[1].to_string(), hex_string)
+        });
         Response::builder()
             .status(200)
             .header("Content-Type", "text/plain")
