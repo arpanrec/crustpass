@@ -1,6 +1,6 @@
 mod authentication;
 mod configuration;
-mod enc;
+mod encryption;
 mod physical;
 mod routers;
 mod services;

@@ -41,7 +41,7 @@ async fn build_keys(key_iv_base64: &str) -> Result<([u8; 32], [u8; 16]), Aes256C
 }
 
 #[allow(dead_code)]
-pub(crate) async fn encryption(
+pub(super) async fn encryption(
     key_iv_base64: &str,
     plaintext: &str,
 ) -> Result<String, Aes256CbcEncError> {
@@ -61,7 +61,7 @@ pub(crate) async fn encryption(
 }
 
 #[allow(dead_code)]
-pub(crate) async fn decryption(
+pub(super) async fn decryption(
     key_iv_base64: &str,
     encrypted_text_base64: &str,
 ) -> Result<String, Aes256CbcEncError> {
@@ -82,6 +82,7 @@ pub(crate) async fn decryption(
 
 #[tokio::test]
 async fn test() {
+    println!("{:?}", generate_key());
     let key_base64 =
         "aes256:5jcK7IMk3+QbNLikFRl3Zwgl9xagKD87s5dT2UqaSR4=:5jcK7IMk3+QbNLikFRl3Zw==".to_string();
     let plaintext = "Hello, World!".to_string();
