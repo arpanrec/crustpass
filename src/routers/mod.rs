@@ -78,8 +78,12 @@ async fn unlock(
     State(shared_state): State<SharedState>,
     body: String,
 ) -> Result<impl IntoResponse, ServerError> {
+    // (aes256:master_key:master_iv, hash(aes256:master_key:master_iv))
     let master_key_iv = body.split(':').collect::<Vec<&str>>();
-    if master_key_iv.len() != 2 {
+    if master_key_iv.len() != 3 {
+        return Err(ServerError::Unauthorized("Invalid master key format".to_string()));
+    }
+    if master_key_iv[0] != "aes256" {
         return Err(ServerError::Unauthorized("Invalid master key format".to_string()));
     }
     let mut hasher = Sha256::new();
@@ -92,12 +96,10 @@ async fn unlock(
             ServerError::InternalServerError(format!("Error getting shared state: {}", ex))
         })?
         .master_key;
-    if let Some((_, _, hash)) = master_key.get() {
+    if let Some((_, hash)) = master_key.get() {
         Err(ServerError::MethodNotAllowed(format!("Master key already set, hash: {}", hash)))
     } else {
-        master_key.get_or_init(|| {
-            (master_key_iv[0].to_string(), master_key_iv[1].to_string(), hex_string.clone())
-        });
+        master_key.get_or_init(|| (body.to_string(), hex_string.clone()));
         Response::builder()
             .status(200)
             .header("Content-Type", "text/plain")
