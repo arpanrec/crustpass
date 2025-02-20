@@ -88,8 +88,7 @@ async fn unlock(
     }
     let mut hasher = Sha256::new();
     hasher.update(body.as_bytes());
-    let result = hasher.finalize();
-    let hex_string = hex::encode(result);
+    let hex_string = hex::encode(hasher.finalize());
     let master_key = &mut shared_state
         .write()
         .map_err(|ex| {

@@ -78,8 +78,7 @@ impl Physical {
         let encryption_key = generate_key().await;
         let mut hasher = Sha256::new();
         hasher.update(encryption_key.as_bytes());
-        let _ = hasher.finalize();
-        let encryption_key_hash = hex::encode(encryption_key.clone());
+        let encryption_key_hash = hex::encode(hasher.finalize());
         let encryption_key_encrypted = encryption(master_enc_key.0, encryption_key.as_str())
             .await
             .map_err(|ex| PhysicalError(format!("Error encrypting encryption key: {}", ex)))?;
