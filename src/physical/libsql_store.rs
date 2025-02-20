@@ -1,3 +1,5 @@
+use crate::physical::PhysicalError;
+use crate::physical::PhysicalError::LibSQLError;
 use libsql::{Builder, Connection};
 use serde::Deserialize;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -29,14 +31,6 @@ struct LibSQLDetails {
     auth_token: String,
 }
 
-pub(crate) struct LibSQLError(String);
-
-impl std::fmt::Display for LibSQLError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "LibSQL Error: {}", self.0)
-    }
-}
-
 #[derive(Clone, Debug)]
 pub(crate) struct LibSQLPhysical {
     libsql_details: LibSQLDetails,
@@ -64,7 +58,7 @@ impl LibSQLPhysical {
         libsql
     }
 
-    async fn get_connection(&mut self) -> Result<Connection, LibSQLError> {
+    async fn get_connection(&mut self) -> Result<Connection, PhysicalError> {
         Builder::new_remote(
             self.libsql_details.db_url.to_string(),
             self.libsql_details.auth_token.to_string(),
@@ -76,7 +70,7 @@ impl LibSQLPhysical {
         .map_err(|ex| LibSQLError(format!("Error connecting to libsql: {}", ex)))
     }
 
-    async fn get_current_version(&mut self, key: &str) -> Result<i64, LibSQLError> {
+    async fn get_current_version(&mut self, key: &str) -> Result<i64, PhysicalError> {
         let sql =
             "SELECT version_d FROM secrets_d WHERE key_d = ? ORDER BY version_d DESC LIMIT 1;";
         let mut rows =
@@ -97,7 +91,7 @@ impl LibSQLPhysical {
     pub(crate) async fn read(
         &mut self,
         key: &str,
-    ) -> Result<Option<(String, String)>, LibSQLError> {
+    ) -> Result<Option<(String, String)>, PhysicalError> {
         let sql ="SELECT value_d, encryption_key_hash_d FROM secrets_d WHERE key_d = ? AND is_deleted_d = 0 ORDER BY version_d DESC LIMIT 1;";
         let mut rows = self
             .get_connection()
@@ -127,7 +121,7 @@ impl LibSQLPhysical {
         key: &str,
         value: &str,
         key_hash: &str,
-    ) -> Result<(), LibSQLError> {
+    ) -> Result<(), PhysicalError> {
         let next_version = self.get_current_version(key).await? + 1;
         let current_epoch_time: i64 = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -143,7 +137,7 @@ impl LibSQLPhysical {
         Ok(())
     }
 
-    pub(super) async fn delete(&mut self, key: &str) -> Result<(), LibSQLError> {
+    pub(super) async fn delete(&mut self, key: &str) -> Result<(), PhysicalError> {
         let current_epoch_time: i64 = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map_err(|ex| LibSQLError(format!("Error getting current epoch time: {}", ex)))?
@@ -159,7 +153,7 @@ impl LibSQLPhysical {
     pub(super) async fn get_encryption_key(
         &mut self,
         key_hash: &str,
-    ) -> Result<String, LibSQLError> {
+    ) -> Result<String, PhysicalError> {
         let sql = "SELECT encryption_key_encrypted_d FROM encryption_keys_d WHERE encryption_key_hash_d = ?;";
         let mut rows =
             self.get_connection().await?.query(sql, libsql::params![key_hash]).await.map_err(
@@ -182,7 +176,7 @@ impl LibSQLPhysical {
         key_encrypted: &str,
         key_hash: &str,
         encryptor_hash: &str,
-    ) -> Result<(), LibSQLError> {
+    ) -> Result<(), PhysicalError> {
         let existing_key = self.get_encryption_key(key_hash).await;
         if existing_key.is_ok() {
             return Ok(());

@@ -13,11 +13,17 @@ pub(crate) enum Physical {
 }
 
 #[derive(Debug)]
-pub(crate) struct PhysicalError(String);
+pub(crate) enum PhysicalError {
+    Error(String),
+    LibSQLError(String),
+}
 
 impl Display for PhysicalError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "Physical Error: {}", self.0)
+        match self {
+            PhysicalError::Error(msg) => write!(f, "PhysicalError: {}", msg),
+            PhysicalError::LibSQLError(msg) => write!(f, "LibSQLError: {}", msg),
+        }
     }
 }
 
@@ -33,10 +39,7 @@ impl Physical {
         key: &str,
     ) -> Result<Option<(String, String)>, PhysicalError> {
         match self {
-            Physical::LibSQL(physical_impl) => physical_impl
-                .read(key)
-                .await
-                .map_err(|ex| PhysicalError(format!("Error reading from libsql: {}", ex))),
+            Physical::LibSQL(physical_impl) => Ok(physical_impl.read(key).await?),
         }
     }
     pub(crate) async fn read(
@@ -45,26 +48,22 @@ impl Physical {
         master_enc_key: (&str, &str),
         _: &str,
     ) -> Result<Option<String>, PhysicalError> {
-        let (encrypted_value, encryption_key_hash) =
-            match self.read_encrypted(key).await.map_err(|ex| {
-                PhysicalError(format!("Error reading encrypted value from libsql: {}", ex))
-            })? {
-                Some(value) => value,
-                None => return Ok(None),
-            };
+        let (encrypted_value, encryption_key_hash) = match self.read_encrypted(key).await? {
+            Some(value) => value,
+            None => return Ok(None),
+        };
         let encrypted_encryption_key = match self {
             Physical::LibSQL(physical_impl) => {
-                physical_impl.get_encryption_key(encryption_key_hash.as_str()).await.map_err(
-                    |ex| PhysicalError(format!("Error getting encryption key from libsql: {}", ex)),
-                )?
+                physical_impl.get_encryption_key(encryption_key_hash.as_str()).await?
             }
         };
-        let encryption_key = decryption(master_enc_key.0, encrypted_encryption_key.as_str())
-            .await
-            .map_err(|ex| PhysicalError(format!("Error decrypting encryption key: {}", ex)))?;
+        let encryption_key =
+            decryption(master_enc_key.0, encrypted_encryption_key.as_str()).await.map_err(
+                |ex| PhysicalError::Error(format!("Error decrypting encryption key: {}", ex)),
+            )?;
         let value = decryption(encryption_key.as_str(), encrypted_value.as_str())
             .await
-            .map_err(|ex| PhysicalError(format!("Error decrypting value: {}", ex)))?;
+            .map_err(|ex| PhysicalError::Error(format!("Error decrypting value: {}", ex)))?;
         Ok(Some(value))
     }
 
@@ -79,12 +78,13 @@ impl Physical {
         let mut hasher = Sha256::new();
         hasher.update(encryption_key.as_bytes());
         let encryption_key_hash = hex::encode(hasher.finalize());
-        let encryption_key_encrypted = encryption(master_enc_key.0, encryption_key.as_str())
-            .await
-            .map_err(|ex| PhysicalError(format!("Error encrypting encryption key: {}", ex)))?;
+        let encryption_key_encrypted =
+            encryption(master_enc_key.0, encryption_key.as_str()).await.map_err(|ex| {
+                PhysicalError::Error(format!("Error encrypting encryption key: {}", ex))
+            })?;
         let encrypted_value = encryption(encryption_key.as_str(), value)
             .await
-            .map_err(|ex| PhysicalError(format!("Error encrypting value: {}", ex)))?;
+            .map_err(|ex| PhysicalError::Error(format!("Error encrypting value: {}", ex)))?;
 
         match self {
             Physical::LibSQL(physical_impl) => {
@@ -94,24 +94,15 @@ impl Physical {
                         &encryption_key_hash,
                         master_enc_key.1,
                     )
-                    .await
-                    .map_err(|ex| {
-                        PhysicalError(format!("Error writing encryption key to libsql: {}", ex))
-                    })?;
-                physical_impl
-                    .write(key, &encrypted_value, encryption_key_hash.as_str())
-                    .await
-                    .map_err(|ex| PhysicalError(format!("Error writing to libsql: {}", ex)))
+                    .await?;
+                physical_impl.write(key, &encrypted_value, encryption_key_hash.as_str()).await
             }
         }
     }
 
     pub(crate) async fn delete(&mut self, key: &str) -> Result<(), PhysicalError> {
         match self {
-            Physical::LibSQL(physical_impl) => physical_impl
-                .delete(key)
-                .await
-                .map_err(|ex| PhysicalError(format!("Error deleting from libsql: {}", ex))),
+            Physical::LibSQL(physical_impl) => Ok(physical_impl.delete(key).await?),
         }
     }
 }
