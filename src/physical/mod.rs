@@ -46,7 +46,6 @@ impl Physical {
         &mut self,
         key: &str,
         master_enc_key: (&str, &str),
-        _: &str,
     ) -> Result<Option<String>, PhysicalError> {
         let (encrypted_value, encryption_key_hash) = match self.read_encrypted(key).await? {
             Some(value) => value,
@@ -72,7 +71,6 @@ impl Physical {
         key: &str,
         value: &str,
         master_enc_key: (&str, &str),
-        _: &str,
     ) -> Result<(), PhysicalError> {
         let encryption_key = generate_key().await;
         let mut hasher = Sha256::new();
