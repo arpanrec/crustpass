@@ -7,6 +7,7 @@ use crate::{
     routers::{authentication::auth_layer, kv::kv},
     SharedState,
 };
+use axum::extract::State;
 use axum::{
     http::StatusCode,
     middleware,
@@ -73,7 +74,10 @@ async fn handle_any() -> Result<impl IntoResponse, ServerError> {
         as Result<_, ServerError>
 }
 
-async fn unlock(body: String) -> Result<impl IntoResponse, ServerError> {
+async fn unlock(
+    State(shared_state): State<SharedState>,
+    body: String,
+) -> Result<impl IntoResponse, ServerError> {
     let master_key_iv = body.split(':').collect::<Vec<&str>>();
     if master_key_iv.len() != 2 {
         return Err(ServerError::Unauthorized("Invalid master key format".to_string()));
@@ -82,17 +86,22 @@ async fn unlock(body: String) -> Result<impl IntoResponse, ServerError> {
     hasher.update(body.as_bytes());
     let result = hasher.finalize();
     let hex_string = hex::encode(result);
-    let master_key = &crate::physical::MASTER_ENCRYPTION_KEY;
+    let master_key = &mut shared_state
+        .write()
+        .map_err(|ex| {
+            ServerError::InternalServerError(format!("Error getting shared state: {}", ex))
+        })?
+        .master_key;
     if let Some((_, _, hash)) = master_key.get() {
         Err(ServerError::MethodNotAllowed(format!("Master key already set, hash: {}", hash)))
     } else {
         master_key.get_or_init(|| {
-            (master_key_iv[0].to_string(), master_key_iv[1].to_string(), hex_string)
+            (master_key_iv[0].to_string(), master_key_iv[1].to_string(), hex_string.clone())
         });
         Response::builder()
             .status(200)
             .header("Content-Type", "text/plain")
-            .body("xx".to_string())
+            .body(format!("Master key set: {}", hex_string))
             .map_err(|ex| {
                 ServerError::InternalServerError(format!("Error creating response: {}", ex))
             })

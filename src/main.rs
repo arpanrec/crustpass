@@ -15,7 +15,7 @@ use tracing::{debug, info};
 struct AppState {
     physical: Physical,
     authentication: Authentication,
-    master_key: OnceLock<String>,
+    master_key: OnceLock<(String, String, String)>, // (master_key, master_iv, hash(master_key:master_iv))
     map: HashMap<String, String>,
 }
 type SharedState = Arc<RwLock<AppState>>;

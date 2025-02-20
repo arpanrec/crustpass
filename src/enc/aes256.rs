@@ -2,13 +2,50 @@ use aes::cipher::{block_padding::Pkcs7, BlockDecryptMut, BlockEncryptMut, KeyIvI
 use base64::{prelude::BASE64_STANDARD, Engine};
 use rand::Rng;
 
-#[allow(dead_code)]
-pub(crate) async fn encryption(key_base64: &str, iv_base64: &str, plaintext: &str) -> String {
-    let key_decoded: Vec<u8> = BASE64_STANDARD.decode(key_base64.as_bytes()).unwrap();
-    let key: [u8; 32] = key_decoded.try_into().unwrap();
+#[derive(Debug)]
+pub(crate) struct Aes256CbcEncError(String);
 
-    let iv_decoded: Vec<u8> = BASE64_STANDARD.decode(iv_base64.as_bytes()).unwrap();
-    let iv: [u8; 16] = iv_decoded.try_into().unwrap();
+impl std::fmt::Display for Aes256CbcEncError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "Aes256CbcEncError: {}", self.0)
+    }
+}
+
+async fn build_keys(key_iv_base64: &str) -> Result<([u8; 32], [u8; 16]), Aes256CbcEncError> {
+    let key_iv_base64_vec = key_iv_base64.split(':').collect::<Vec<&str>>();
+    if key_iv_base64_vec.len() != 3 {
+        Aes256CbcEncError("Invalid key_iv_base64".to_string());
+    }
+
+    if key_iv_base64_vec[0] != "aes256" {
+        Aes256CbcEncError("Invalid key_iv_base64".to_string());
+    }
+
+    let key_base64 = key_iv_base64_vec[1];
+    let iv_base64 = key_iv_base64_vec[2];
+
+    let key_decoded: Vec<u8> = BASE64_STANDARD
+        .decode(key_base64.as_bytes())
+        .map_err(|ex| Aes256CbcEncError(format!("Error decoding key_base64: {}", ex)))?;
+    let key: [u8; 32] = key_decoded.try_into().map_err(|ex| {
+        Aes256CbcEncError(format!("Error converting key_decoded to [u8; 32]: {:?}", ex))
+    })?;
+
+    let iv_decoded: Vec<u8> = BASE64_STANDARD
+        .decode(iv_base64.as_bytes())
+        .map_err(|ex| Aes256CbcEncError(format!("Error decoding iv_base64: {}", ex)))?;
+    let iv: [u8; 16] = iv_decoded.try_into().map_err(|ex| {
+        Aes256CbcEncError(format!("Error converting iv_decoded to [u8; 16]: {:?}", ex))
+    })?;
+    Ok((key, iv))
+}
+
+#[allow(dead_code)]
+pub(crate) async fn encryption(
+    key_iv_base64: &str,
+    plaintext: &str,
+) -> Result<String, Aes256CbcEncError> {
+    let (key, iv) = build_keys(key_iv_base64).await?;
 
     let plaintext_bin: Vec<u8> = plaintext.as_bytes().to_vec();
     type Aes256CbcEnc = cbc::Encryptor<aes::Aes256>;
@@ -18,22 +55,17 @@ pub(crate) async fn encryption(key_base64: &str, iv_base64: &str, plaintext: &st
     buf[..pt_len].copy_from_slice(&plaintext_bin);
     let ct = Aes256CbcEnc::new(&key.into(), &iv.into())
         .encrypt_padded_mut::<Pkcs7>(&mut buf, pt_len)
-        .unwrap();
+        .map_err(|ex| Aes256CbcEncError(format!("Error encrypting: {}", ex)))?;
     let ct_base64 = BASE64_STANDARD.encode(&ct);
-    ct_base64.to_string()
+    Ok(ct_base64.to_string())
 }
 
 #[allow(dead_code)]
 pub(crate) async fn decryption(
-    key_base64: &str,
-    iv_base64: &str,
+    key_iv_base64: &str,
     encrypted_text_base64: &str,
-) -> String {
-    let key_decoded: Vec<u8> = BASE64_STANDARD.decode(key_base64.as_bytes()).unwrap();
-    let key: [u8; 32] = key_decoded.try_into().unwrap();
-
-    let iv_decoded: Vec<u8> = BASE64_STANDARD.decode(iv_base64.as_bytes()).unwrap();
-    let iv: [u8; 16] = iv_decoded.try_into().unwrap();
+) -> Result<String, Aes256CbcEncError> {
+    let (key, iv) = build_keys(key_iv_base64).await?;
 
     let encrypted_text_decoded: Vec<u8> =
         BASE64_STANDARD.decode(encrypted_text_base64.as_bytes()).unwrap();
@@ -45,19 +77,19 @@ pub(crate) async fn decryption(
         .decrypt_padded_b2b_mut::<Pkcs7>(&encrypted_text_bin, &mut buf)
         .unwrap();
     let pt_str = String::from_utf8_lossy(&pt);
-    pt_str.to_string()
+    Ok(pt_str.to_string())
 }
 
 #[tokio::test]
 async fn test() {
-    let key_base64 = "5jcK7IMk3+QbNLikFRl3Zwgl9xagKD87s5dT2UqaSR4=".to_string();
-    let iv_base64 = "5jcK7IMk3+QbNLikFRl3Zw==".to_string();
+    let key_base64 =
+        "aes256:5jcK7IMk3+QbNLikFRl3Zwgl9xagKD87s5dT2UqaSR4=:5jcK7IMk3+QbNLikFRl3Zw==".to_string();
     let plaintext = "Hello, World!".to_string();
     let encrypted_text = "yQp5HF92QfpV/jdmPIDYJQ==".to_string();
-    let enc = encryption(&key_base64, &iv_base64, &plaintext).await;
+    let enc = encryption(&key_base64, &plaintext).await.expect("Error encrypting");
     println!("Encrypted: value: {}", enc);
     assert_eq!(enc, encrypted_text);
-    let dec = decryption(&key_base64, &iv_base64, &enc).await;
+    let dec = decryption(&key_base64, &enc).await.expect("Error decrypting");
     println!("Decrypted: value: {}", dec);
     assert_eq!(dec, plaintext);
 }
