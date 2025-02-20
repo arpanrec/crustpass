@@ -82,7 +82,7 @@ pub(super) async fn decryption(
 
 #[tokio::test]
 async fn test() {
-    println!("{:?}", generate_key());
+    println!("{:?}", generate_key().await);
     let key_base64 =
         "aes256:5jcK7IMk3+QbNLikFRl3Zwgl9xagKD87s5dT2UqaSR4=:5jcK7IMk3+QbNLikFRl3Zw==".to_string();
     let plaintext = "Hello, World!".to_string();
@@ -95,11 +95,11 @@ async fn test() {
     assert_eq!(dec, plaintext);
 }
 
-fn generate_key() -> (String, String) {
+pub(super) async fn generate_key() -> String {
     let mut rng = rand::rng();
     let mut key = [0u8; 32];
     rng.fill(&mut key);
     let mut iv = [0u8; 16];
     rng.fill(&mut iv);
-    (BASE64_STANDARD.encode(key), BASE64_STANDARD.encode(iv))
+    format!("aes256:{}:{}", BASE64_STANDARD.encode(key), BASE64_STANDARD.encode(iv))
 }

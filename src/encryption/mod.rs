@@ -15,3 +15,7 @@ pub(crate) async fn decryption(
 ) -> Result<String, Aes256CbcEncError> {
     aes256::decryption(key_iv_base64, encrypted_text_base64).await
 }
+
+pub(crate) async fn generate_key() -> String {
+    aes256::generate_key().await
+}
